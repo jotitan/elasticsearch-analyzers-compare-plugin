@@ -1,0 +1,475 @@
+<html>
+
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>Test des analyers Elasticsearch</title>
+<script language="Javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js">;</script>
+</head>
+
+
+<body>
+
+<style>
+
+.table th {
+	font-weight:bold;
+	background-color:gray;
+	color:white;
+	text-align:center;
+}
+
+.table td {
+	border-bottom:solid 1px black;
+}
+
+option span {font-weight:bold;}
+
+.server_info {
+	background-color:#EEEEEE;
+	padding:5px;
+}
+
+body {margin:0px;}
+
+</style>
+
+
+<script language="Javascript">
+/* Url du service elasticsearch */
+var URL_ROOT = 'http://localhost:9200/';
+/* Prefixe de tous les index crees par la page */
+var PREFIX_INDEX = 'index_cetest_';
+
+var colors = ["saddlebrown","green","orange","purple","salmon","dodgerblue","firebrick","gold","midnightblue","black","greenyellow","chocolate","aqua","crimson","gray","fuchsia","khaki","red","lightgreen","olive"];
+var nbExistingIndexes = 0;
+var indexes = new Array();
+var tokenizers = {
+	standard:{name:"standard",label:"Standard"},
+	ngram4:{name:"ngram4",label:"nGram 4-10",options:{type:"nGram",min_gram:4,max_gram:10}},
+	ngram5:{name:"ngram5",label:"nGram 5-10",options:{type:"nGram",min_gram:5,max_gram:10}},
+	edgengram4:{name:"edgengram4",label:"Edge nGram 4-10",options:{type:"edgeNGram",min_gram:4,max_gram:10,side:"back"}},
+	edgengram5:{name:"edgengram5",label:"Edge nGram 5-10",options:{type:"edgeNGram",min_gram:5,max_gram:10,side:"back"}}	
+};
+var filters = {
+	standard:{name:"standard",label:"Standard"},
+	lowercase:{name:"lowercase",label:"Lowercase"},
+	asciifolding:{name:"asciifolding",label:"<span>Asciifolding</span> (supprime les accents)",options:{type:"asciifolding"}},
+	elision:{name:"elision",label:"<span>Elision</span> (Enlève les liaisons : d')",options:{type:"elision",articles:["l","m","t","qu","n","s","j","d"]}},
+	stop:{name:"stop",label:"<span>Stopwords</span> (Mots écartés de la recherche, trop communs)",options:{type:"stop",ignore_case:true,stopwords:["alors","au","aucuns","aussi","autre","avant","avec","avoir","bon","car","ce","cela","ces","ceux","chaque","ci","comme","comment","dans","de","des","du","dedans","dehors","depuis","deux","devrait","doit","donc","dos","droite","début","elle","elles","en","encore","essai","est","et","eu","fait","faites","fois","font","force","haut","hors","ici","il","ils","je","juste","la","le","les","leur","là","ma","maintenant","mais","mes","mine","moins","mon","mot","même","ni","nommés","notre","nous","nouveaux","ou","où","par","parce","parole","pas","personnes","peut","peu","pièce","plupart","pour","pourquoi","quand","que","quel","quelle","quelles","quels","qui","sa","sans","ses","seulement","si","sien","son","sont","sous","soyez","sujet","sur","ta","tandis","tellement","tels","tes","ton","tous","tout","trop","très","tu","valeur","voie","voient","vont","votre","vous","vu","ça","étaient","état","étions","été","être"]}},
+	lowercase:{name:"lowercase",label:"Lowercase"},
+	snowball:{name:"snowball",label:"<span>Snowball</span> (Cherche la racine francaise)",options:{type:"snowball",language:"French"}},
+	double_metaphone:{name:"double_metaphone",label:"<span>Double metaphone</span> (Analyse phonetic, detecte les mots sonnants pareils)",options:{type:"phonetic",encoder:"double_metaphone",replace:false}},
+	ngram5:{name:"ngram5",label:"<span>nGram 5-10</span> (Coupe les mots en parties de 5 a 10c)",options:{type:'nGram',min_gram:5,max_gram:10}},
+	ngram4:{name:"ngram4",label:"<span>nGram 4-10</span> (Coupe les mots en parties de 4 a 10c)",options:{type:'nGram',min_gram:4,max_gram:10}},
+	stemmer_light:{name:"stemmer_light",label:"<span>Stemmer light french</span> (Cherche la racine francaise (autre dico))",options:{type:"stemmer",name:"light_french"}},
+	stemmer_french:{name:"stemmer_french",label:"<span>Stemmer french</span> (Cherche la racine francaise (autre dico))",options:{type:"stemmer",name:"french"}},
+	stemmer_minimal_french:{name:"stemmer_minimal_french",label:"<span>Stemmer minimal french</span> (Cherche la racine francaise (autre dico))",options:{type:"stemmer",name:"minimal_french"}}
+	
+};
+
+
+
+
+function openGestionDiv(button){
+	if($(button).val() == "Ouvrir"){
+		$(button).val("Fermer");
+		$('#idDivGestion').show();
+	}
+	else{
+		$(button).val("Ouvrir");
+		$('#idDivGestion').hide();
+	}
+}
+
+
+/* Supprime toutes les donnée des index */
+function deleteAllEntries(){
+	if(confirm("Etes vous sur de vouloir supprimer toutes les donnees ?")){
+		$(indexes).each(function(){
+			$.ajax({
+				url:URL_ROOT + '/' + this.id + '/_query?q=*',
+				type:'DELETE',
+				dataType:'json',
+				success:function(data){
+
+				}
+			});
+		});
+	}
+}
+
+/* Supprime tous les index de test cree */
+function deleteAllIndexes(){
+	if(confirm("Etes vous sur de vouloir supprimer tous les index ?")){
+		$(indexes).each(function(){
+			$.ajax({
+				url:URL_ROOT + '/' + this.id,
+				type:'DELETE',
+				dataType:'json',
+				success:function(data){
+
+				}
+			});
+		});
+		indexes = new Array();
+		$('#idListeExistingIndexes').empty();
+		$('#idListeIndexes').empty();
+		nbExistingIndexes = 0;
+	}
+}
+
+
+function Element(name,options){
+	this.name=name;
+	this.options = options;
+}
+
+function getIndexById(id){
+	var index = null;
+	$(indexes).each(function(){
+		if(this.id == id){index = this;}
+	});
+	return index;
+}
+
+/* Represente un index */
+function Index(index,tokenizer,filters,color,existing){
+	this.id = index;
+	this.color = color;
+	this.tokenizer = tokenizer;
+	this.filters = filters;
+	this.nbDatas = 0;
+	this.existing = existing;	// Indique que l'index existe deja, on ne peut pas le creer
+	this.getJSON = function(){
+		if(this.existing){return;}
+		var filtersArray = ["standard","lowercase"];
+		var filtersDefinitions = {};
+		$(this.filters).each(function(i){
+			filtersArray[i+2] = this.name;
+			if(this.options!=null){
+				filtersDefinitions[this.name] = this.options;
+			}
+		});
+		var tokenizerDefinition = {};
+		if(tokenizer.options!=null){
+			tokenizerDefinition[tokenizer.name] = tokenizer.options;
+		}
+		return {analysis:{filter:filtersDefinitions,tokenizer:tokenizerDefinition,analyzer:{'myanalyzer':{type:"custom",tokenizer:this.tokenizer.name,filter:filtersArray}}}};
+	}
+}
+
+/* Genere les index dans elasticsearch */
+function genererIndex(){
+	$('#idListeIndexes > div').each(function(pos){
+		var tokenizerOpt = $(this).find('#idTokenizer > option:selected');
+		if(tokenizerOpt.length > 0){
+			var tokenizer = new Element(tokenizers[tokenizerOpt.val()].name,tokenizers[tokenizerOpt.val()].options);
+			var filtersSelected = [];		
+			$(this).find('#idFilters > option:selected').each(function(i){
+				filtersSelected[i] = new Element(filters[$(this).val()].name,filters[$(this).val()].options);
+			});
+			var index = new Index(PREFIX_INDEX + (pos+nbExistingIndexes) ,tokenizer,filtersSelected,$(this).find('span:first').css('backgroundColor'),false);
+			addIndexes(index,$(this));
+		}
+	});
+}
+
+/* Cree un nouvel index dans elasticsearch (objet index en parametre) */
+function addIndexes(index,div){
+	$.ajax({
+		url:URL_ROOT + '/' + index.id,
+		data:JSON.stringify(index.getJSON()),
+		dataType:'json',
+		type:'PUT',
+		success:function(data){
+			if(data.ok){
+				// On ajoute le mapping
+				$.ajax({
+					url:URL_ROOT + '/' + index.id + '/test/_mapping',
+					type:'PUT',
+					data:'{test:{index_analyzer:"myanalyzer",search_analyzer:"myanalyzer",properties:{"data":{"type":"string","analyzer":"myanalyzer"}}}}',
+					dataType:'json',
+					success:function(data){
+						if(data.ok){					
+							indexes.push(index);
+							showCreatedIndex(index,div);
+						}
+						else{
+							div.find('span:last').text('KO').css('color','red');
+						}
+					}
+				});								
+			}
+			else{
+				div.find('span:last').text('KO').css('color','red');
+			}
+			
+
+		},
+		error:function(a,b,c){div.find('span:last').text('KO').css('color','red');}
+	});
+	
+}
+
+/* Affiche un index nouvellement cree */
+function showCreatedIndex(index,div){
+	if(index == null || index.tokenizer == null){return;}
+	div.empty();
+	div.append('<span style="background-color:' + index.color + ';width:30px;height:15px;display:inline-block"></span>&nbsp;&nbsp;<span style="color:' + index.color + '">' + index.id + '</span>');
+	div.append(', <span style="font-weight:bold">Tokenizer</span> : ' + index.tokenizer.name);
+	if(index.filters.length > 0){
+		div.append(', <span style="font-weight:bold">Filtres</span> : ');	
+		$(index.filters).each(function(i){
+			div.append(this.name + ', ');
+		});
+	}
+	div.appendTo($('#idListeExistingIndexes'));
+}
+
+function addIndex(){
+	var template = $('#idTemplateIndex').clone().removeAttr('id');
+	$('span.colorpicker',template).css('backgroundColor',colors[($('#idListeIndexes > div').length + nbExistingIndexes)%colors.length]);
+	template.appendTo($('#idListeIndexes')).show();
+}
+
+/* Ajoute une entree dans chaque index */
+function addLigne(){
+	$('#idMessage').empty();
+	var data = $('#idValueData').val();
+	$(indexes).each(function(){
+		var index = this;
+		$.ajax({
+			url:URL_ROOT + '/' + this.id + '/test/' + (++this.nbDatas),
+			type:'PUT',
+			dataType:'json',
+			data:'{"data":"' + data + '"}',
+			success:function(data){
+				if(data.ok){
+					$('#idMessage').append('<span style="color:green">OK dans ' + index.id + '</span> - ');
+				}
+				else{
+					$('#idMessage').append('<span style="color:red">KO dans ' + index.id + '</span> - ');
+				}
+			}
+		});
+	});
+	$('#idValueData').val('');
+}
+
+/* Effectue la recherche dans les differents indexs */
+function searchInIndexes(){
+	var nb = ($('#idNbResults').val()!='')?$('#idNbResults').val():10;
+	var params = '{size:' + nb + ',';
+	if(($(':radio:checked','#idRecherche').val() == 0)){
+		params+='query:{text:{data:"' + $('#idSearchValue').val() + '"}}}';
+	}
+	else{
+		params+='query:{query_string:{query:"' + $('#idSearchValue').val() + '"}}}';
+	}
+	$('tr:not(:has(th))','#idTableResultats').remove();
+	$.ajax({
+		url:URL_ROOT + '/_search',
+		data:params,
+		type:'POST',
+		dataType:'json',
+		success:function(data){
+			var json = data;
+			if(json==null || json.hits == null){return;}
+			$('#idTotal').text(json.hits.total);
+			if(json.hits.total > 0){
+				$(json.hits.hits).each(function(pos){
+					var index = getIndexById(this._index);
+					if(index != null){					
+						var tr = $('<tr><td>' + (pos+1) + '</td><td style="color:' + index.color + '">' + index.id + '</td><td>' + this._score + '</td><td>' + this._source.data + '</td></tr>');
+						$('#idTableResultats').append(tr);
+					}
+				});				
+			}
+		},
+		error:function(a,b,c){alert("ERREUR : " + a + " " + b + " " + c);}
+	});
+	
+}
+
+function cleanDisplayedIndex(){
+	$('#idListeExistingIndexes').empty();
+	indexes = [];
+	nbExistingIndexes = 0;
+	
+}
+
+/* Cherche les index deja crees et les affiches */
+function getAllIndexes(){
+	cleanDisplayedIndex();
+	$.ajax({
+		url:URL_ROOT + '/_settings',
+		dataType:'json',
+		type:'GET',
+		success:function(data){
+			for(var index in data){
+				// On charge uniquement les indexs de test
+				if(index.indexOf(PREFIX_INDEX) == 0){
+					var filtersSelected = [];		
+					var tokenizer = null;
+					for(var setting in data[index].settings){
+						// Ajout de filtre
+						if(setting.indexOf("myanalyzer.filter")!=-1){
+							filtersSelected[filtersSelected.length] = new Element(filters[data[index].settings[setting]].name,filters[data[index].settings[setting]].options);
+						}
+						if(setting.indexOf("myanalyzer.tokenizer")!=-1){
+							if(tokenizers!=null && tokenizers[data[index].settings[setting]] != null){
+								tokenizer = new Element(tokenizers[data[index].settings[setting]].name,tokenizers[data[index].settings[setting]].options);
+							}
+						}					
+					}
+					var indexObject = new Index(index,tokenizer,filtersSelected,colors[nbExistingIndexes],true);
+					indexes.push(indexObject);
+					// Recuperation du nombre d'objet
+					$.ajax({
+						url:URL_ROOT + '/' + index + '/_search?q=*',
+						dataType:'json',
+						type:'GET',
+						success:function(data){
+							var json = data;
+							indexObject.nbDatas = json.hits.total;
+						}
+					});
+					nbExistingIndexes++;
+					// On affiche l'index
+					var div = $('<div></div>');
+					$('#idListeExistingIndexes').append(div);
+					showCreatedIndex(indexObject,div);
+				}
+			}
+		}
+	});
+}
+
+/* Charge les tokenizers et filters */
+function loadTokenizersFilters(){
+	for(var tokenizer in tokenizers){
+		$('#idTokenizer').append('<option value="' + tokenizer + '">' + tokenizers[tokenizer].label + '</option>');
+	}
+	for(var filter in filters){
+		if(filters[filter].options!=null){
+			var option = $('<option value="' + filter + '"></option>');
+			option.append(filters[filter].label);
+			$('#idFilters').append(option);
+		}
+	}
+}
+
+/* Switch sur un autre server */
+function changeServerConnect(url,prefix){
+	URL_ROOT = url;
+	PREFIX_INDEX = prefix;
+	getAllIndexes();
+}
+
+function initConfigButtons(){
+	$('#idUrlConnect').val(URL_ROOT);
+	$('#idPrefixIndex').val(PREFIX_INDEX);
+	$('#idAddEntry').click(function(){
+		$('#idAjoutLigne').show();
+		$('#idMessage').empty();
+	});
+
+	$('#idSearchButton').click(function(){
+		$('#idRecherche').show();
+		$('#idSearchValue').focus();
+	});
+
+	$('#idAddIndex').click(function(){addIndex();});
+	$('#idDeleteIndexes').click(function(){deleteAllIndexes();});
+	$('#idDeleteEntries').click(function(){deleteAllEntries();});
+	$('#idGenerateIndexes').click(function(){genererIndex();});
+	$('#idSearchIn').click(function(){searchInIndexes();return false;});
+	$('#idAddLigne').click(function(){addLigne();return false;});
+}
+
+$(function(){
+	initConfigButtons();
+	loadTokenizersFilters();
+	getAllIndexes();
+
+});
+
+
+
+
+</script>
+
+<div style="font-size:73%" class="server_info">
+	<h1 style="float:left;padding-right:20px;margin:-2px 0 0 0">ElasticSearch</h1>
+	<span>
+		HOST : <input type="text" id="idUrlConnect" style="margin-right:20px;"/>
+		PREFIX : <input type="text" id="idPrefixIndex"/>
+		<input type="button" value="Se connecter" onclick="changeServerConnect($('#idUrlConnect').val(),$('#idPrefixIndex').val())"/>
+	</span>
+	<div style="clear:both"></div>
+</div>
+
+<div id="idMessage"></div>
+
+<fieldset><legend>Gestion (<input type="button" value="Ouvrir" onclick="openGestionDiv(this)"/>)</legend>
+<div id="idDivGestion" style="display:none">
+	<input type="button" value="Ajouter index" id="idAddIndex"/>
+	<input type="button" value="Supprimer tous les index" id="idDeleteIndexes"/>
+	<input type="button" value="Supprimer tous les donnees" id="idDeleteEntries"/>
+	<input type="button" value="Generer les index" id="idGenerateIndexes"/>
+	<div id="idListeIndexes"></div>
+</div>
+</fieldset>
+
+
+<fieldset><legend>Index créés</legend>
+<div id="idListeExistingIndexes"></div>
+</fieldset>
+
+
+<fieldset><legend>Données</legend>
+
+<input type="button" value="Ajouter entree" id="idAddEntry"/>
+<input type="button" value="Rechercher" id="idSearchButton"/>
+
+<div id="idAjoutLigne" style="display:none">
+	<form>
+	Valeur : <input type="text" id="idValueData"/>
+	<input type="submit" value="Ajout" id="idAddLigne" />
+	<input type="button" value="Fermer" onclick="$('#idAjoutLigne').hide()"/>
+	</form>
+</div>
+
+<div id="idRecherche" style="display:none">
+	<form>	
+		Valeur : <input type="text" id="idSearchValue"/>
+		Type de recherche : <input type="radio" value="0" name="searchType" checked="checked" id="idRadioChamp"/><label for="idRadioChamp">Champ</label>
+		<input type="radio" value="1" name="searchType" id="idRadioGlobal"/><label for="idRadioGlobal">Global</label>
+		Nombre : <input type="text" id="idNbResults" size="3"/>
+		<input type="submit" value="Rechercher" id="idSearchIn"/>
+		<input type="button" value="Fermer" onclick="$('#idRecherche').hide()"/>
+	</form>
+
+</div>
+
+<div id="idResultats" style="width:80%;">
+	Total : <span id="idTotal"></span><br/>
+	<table class="table" style="width:100%" id="idTableResultats"><tr><th style="width:50px">#</th><th>Index</th><th>Score</th><th>Valeur</th></tr></table>
+</div>
+
+</fieldset>
+
+<div style="display:none" id="idTemplateIndex">
+	<span style="display:inline-block;width:30px;height:15px;" class="colorpicker">&nbsp;</span>	
+	Tokenizer : <select id="idTokenizer"></select>
+	Filtres : <select id="idFilters" multiple="multiple" size="3"></select>
+	<input type="button" value="Supprimer" onclick="$(this).closest('div').remove()"/>
+	<span></span>
+</div>
+
+
+
+</body>
+
+</html>
