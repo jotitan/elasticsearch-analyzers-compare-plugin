@@ -339,7 +339,7 @@ function getAllIndexes(){
 					}
 					// On (trie les filtres)
 					filtersSelected.sort(function(a,b){
-						return a.pos > b.pos;
+						return (a.pos == b.pos)?0:(a.pos > b.pos)?1:-1;
 					});
 					var indexObject = new Index(index,tokenizer,filtersSelected,colors[nbExistingIndexes],true);
 					indexes.push(indexObject);
