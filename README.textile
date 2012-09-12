@@ -14,3 +14,10 @@ Il suffit d’utiliser le plugin d’installation : ‘bin/plugin -install jotit
 
 Le champ PREFIX permet de définir un prefix commun à tous les indexs qui seront créés. Si le prefixe n’est pas précisé, il est possible de tout supprimer tous les indexs présents sur le serveur. Il faut faire attention en manipulant le plugin au risque de perdre toutes ses données.
 
+
+Recherche
+---------
+
+La recherche peut se faire de deux manières : soit sur un champ analysé (type de recherche "champ") ou une recherche global (type de recherche "global") équivalent à la _search?q=*.
+La recherche "champ" s'effectue sur le même champ dans tous les indexs (mais analyzés différemment) appelé "data".
+La recherche globale ne permet donc pas l'utilisation des analyzers et n'est pas très pertinente, elle permet surtout de comparer le résultat d'une recherche analyzée ou non.
