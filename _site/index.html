@@ -53,11 +53,11 @@ var tokenizers = {
 };
 var filters = {
 	standard:{name:"standard",label:"Standard"},
-	lowercase:{name:"lowercase",label:"Lowercase"},
+	lowercase:{name:"lowercase",label:"<span>Lowercase</span>",options:{type:"lowercase"}},
+	word_delimiter:{name:"word_delimiter",label:"<span>Word delimiter</span> (découpe les mots suivants plusieurs règles)",options:{type:"word_delimiter"}},
 	asciifolding:{name:"asciifolding",label:"<span>Asciifolding</span> (supprime les accents)",options:{type:"asciifolding"}},
 	elision:{name:"elision",label:"<span>Elision</span> (Enlève les liaisons : d')",options:{type:"elision",articles:["l","m","t","qu","n","s","j","d"]}},
 	stop:{name:"stop",label:"<span>Stopwords</span> (Mots écartés de la recherche, trop communs)",options:{type:"stop",ignore_case:true,stopwords:["alors","au","aucuns","aussi","autre","avant","avec","avoir","bon","car","ce","cela","ces","ceux","chaque","ci","comme","comment","dans","de","des","du","dedans","dehors","depuis","deux","devrait","doit","donc","dos","droite","début","elle","elles","en","encore","essai","est","et","eu","fait","faites","fois","font","force","haut","hors","ici","il","ils","je","juste","la","le","les","leur","là","ma","maintenant","mais","mes","mine","moins","mon","mot","même","ni","nommés","notre","nous","nouveaux","ou","où","par","parce","parole","pas","personnes","peut","peu","pièce","plupart","pour","pourquoi","quand","que","quel","quelle","quelles","quels","qui","sa","sans","ses","seulement","si","sien","son","sont","sous","soyez","sujet","sur","ta","tandis","tellement","tels","tes","ton","tous","tout","trop","très","tu","valeur","voie","voient","vont","votre","vous","vu","ça","étaient","état","étions","été","être"]}},
-	lowercase:{name:"lowercase",label:"Lowercase"},
 	snowball:{name:"snowball",label:"<span>Snowball</span> (Cherche la racine francaise)",options:{type:"snowball",language:"French"}},
 	double_metaphone:{name:"double_metaphone",label:"<span>Double metaphone</span> (Analyse phonetic, detecte les mots sonnants pareils)",options:{type:"phonetic",encoder:"double_metaphone",replace:false}},
 	ngram5:{name:"ngram5",label:"<span>nGram 5-10</span> (Coupe les mots en parties de 5 a 10c)",options:{type:'nGram',min_gram:5,max_gram:10}},
@@ -120,9 +120,10 @@ function deleteAllIndexes(){
 }
 
 
-function Element(name,options){
+function Element(name,options,pos){
 	this.name=name;
 	this.options = options;
+	this.pos = pos;
 }
 
 function getIndexById(id){
@@ -143,7 +144,7 @@ function Index(index,tokenizer,filters,color,existing){
 	this.existing = existing;	// Indique que l'index existe deja, on ne peut pas le creer
 	this.getJSON = function(){
 		if(this.existing){return;}
-		var filtersArray = ["standard","lowercase"];
+		var filtersArray = ["standard"];//,"lowercase"];
 		var filtersDefinitions = {};
 		$(this.filters).each(function(i){
 			filtersArray[i+2] = this.name;
@@ -165,8 +166,8 @@ function genererIndex(){
 		var tokenizerOpt = $(this).find('#idTokenizer > option:selected');
 		if(tokenizerOpt.length > 0){
 			var tokenizer = new Element(tokenizers[tokenizerOpt.val()].name,tokenizers[tokenizerOpt.val()].options);
-			var filtersSelected = [];		
-			$(this).find('#idFilters > option:selected').each(function(i){
+			var filtersSelected = [];				
+			$(this).find('#idSelectedFilters > option').each(function(i){
 				filtersSelected[i] = new Element(filters[$(this).val()].name,filters[$(this).val()].options);
 			});
 			var index = new Index(PREFIX_INDEX + (pos+nbExistingIndexes) ,tokenizer,filtersSelected,$(this).find('span:first').css('backgroundColor'),false);
@@ -227,9 +228,21 @@ function showCreatedIndex(index,div){
 	div.appendTo($('#idListeExistingIndexes'));
 }
 
+/* Affiche un bloc de creation d'un index */
 function addIndex(){
 	var template = $('#idTemplateIndex').clone().removeAttr('id');
 	$('span.colorpicker',template).css('backgroundColor',colors[($('#idListeIndexes > div').length + nbExistingIndexes)%colors.length]);
+	$('#idFilters > option',template).dblclick(function(a){
+		var option = $(a.currentTarget);
+		if(option.attr('disabled') == true){return;}
+		$('#idSelectedFilters',template).append('<option value="' + option.val() + '">' + option.find('span').text() + '</option>');
+		option.attr('disabled','disabled');
+	});
+	$('#idSelectedFilters > option',template).live('dblclick',function(a){
+		var option = $(a.currentTarget);console.log(option);
+		$('#idFilters > option[value="' + option.val() + '"]',template).removeAttr('disabled');
+		option.remove();
+	});
 	template.appendTo($('#idListeIndexes')).show();
 }
 
@@ -315,7 +328,8 @@ function getAllIndexes(){
 					for(var setting in data[index].settings){
 						// Ajout de filtre
 						if(setting.indexOf("myanalyzer.filter")!=-1){
-							filtersSelected[filtersSelected.length] = new Element(filters[data[index].settings[setting]].name,filters[data[index].settings[setting]].options);
+							var pos = setting.substr(setting.indexOf("myanalyzer.filter") + 18);
+							filtersSelected[filtersSelected.length] = new Element(filters[data[index].settings[setting]].name,filters[data[index].settings[setting]].options,pos);
 						}
 						if(setting.indexOf("myanalyzer.tokenizer")!=-1){
 							if(tokenizers!=null && tokenizers[data[index].settings[setting]] != null){
@@ -323,6 +337,10 @@ function getAllIndexes(){
 							}
 						}					
 					}
+					// On (trie les filtres)
+					filtersSelected.sort(function(a,b){
+						return a.pos > b.pos;
+					});
 					var indexObject = new Index(index,tokenizer,filtersSelected,colors[nbExistingIndexes],true);
 					indexes.push(indexObject);
 					// Recuperation du nombre d'objet
@@ -396,8 +414,6 @@ $(function(){
 });
 
 
-
-
 </script>
 
 <div style="font-size:73%" class="server_info">
@@ -463,7 +479,9 @@ $(function(){
 <div style="display:none" id="idTemplateIndex">
 	<span style="display:inline-block;width:30px;height:15px;" class="colorpicker">&nbsp;</span>	
 	Tokenizer : <select id="idTokenizer"></select>
-	Filtres : <select id="idFilters" multiple="multiple" size="3"></select>
+	Filtres : <select id="idFilters" size="3"></select>
+	=> 
+	<select id="idSelectedFilters" size="3"></select>
 	<input type="button" value="Supprimer" onclick="$(this).closest('div').remove()"/>
 	<span></span>
 </div>
