@@ -68,20 +68,16 @@ var filters = {
 	
 };
 
-
-
-
 function openGestionDiv(button){
-	if($(button).val() == "Ouvrir"){
-		$(button).val("Fermer");
+	if($('#idDivGestion:visible').length == 0){
+		$(button).val(getInternationalLabel("button-close","Fermer"));
 		$('#idDivGestion').show();
 	}
 	else{
-		$(button).val("Ouvrir");
+		$(button).val(getInternationalLabel("button-open","Ouvrir"));
 		$('#idDivGestion').hide();
 	}
 }
-
 
 /* Supprime toutes les donnée des index */
 function deleteAllEntries(){
@@ -406,10 +402,54 @@ function initConfigButtons(){
 	$('#idAddLigne').click(function(){addLigne();return false;});
 }
 
+function getInternationalLabel(key,defaultValue){
+    if(typeof languageTabs == 'undefined'){
+        return defaultValue;
+    }
+    if(languageTabs[key]!=null){
+        return languageTabs[key];
+    }
+    return defaultValue;
+}
+
+/* Charge les libelles en fonction du navigateur */
+function loadInternationalisation(callback){
+    // Charge le fichier js de la langue (deux premiers caracteres de la locale)
+    var file = "language/" + navigator.language.substr(0,2) + ".js";
+
+    $.ajax({
+        url:file,
+        dataType:"script",
+        async:true,
+        error:function(a,b,c){
+            alert("Pas de langue disponible pour " + navigator.language);
+            callback();
+        },
+        success:function(data){
+            if(typeof languageTabs == 'undefined'){
+                alert("Pas de langue disponible pour " + navigator.language);
+                return;
+            }
+            $('span[data-lang-key],th[data-lang-key],label[data-lang-key]').each(function(){
+                if(languageTabs[$(this).data('lang-key')]!=null){
+                    $(this).text(languageTabs[$(this).data('lang-key')]);
+                }
+            });
+            $('input:button[data-lang-key],input:submit[data-lang-key]').each(function(){
+                if(languageTabs[$(this).data('lang-key')]!=null){
+                    $(this).val(languageTabs[$(this).data('lang-key')]);
+                }
+            });
+            callback();
+    }});
+}
+
 $(function(){
 	initConfigButtons();
-	loadTokenizersFilters();
-	getAllIndexes();
+    loadInternationalisation(function(){
+        loadTokenizersFilters();
+        getAllIndexes();
+    });
 
 });
 
@@ -419,67 +459,72 @@ $(function(){
 <div style="font-size:73%" class="server_info">
 	<h1 style="float:left;padding-right:20px;margin:-2px 0 0 0">ElasticSearch</h1>
 	<span>
-		HOST : <input type="text" id="idUrlConnect" style="margin-right:20px;"/>
-		PREFIX : <input type="text" id="idPrefixIndex"/>
-		<input type="button" value="Se connecter" onclick="changeServerConnect($('#idUrlConnect').val(),$('#idPrefixIndex').val())"/>
+		<span data-lang-key="host">HOST</span> : <input type="text" id="idUrlConnect" style="margin-right:20px;"/>
+		<span data-lang-key="prefix">PREFIX</span> : <input type="text" id="idPrefixIndex"/>
+		<input type="button" data-lang-key="connect" value="Se connecter" onclick="changeServerConnect($('#idUrlConnect').val(),$('#idPrefixIndex').val())"/>
 	</span>
 	<div style="clear:both"></div>
 </div>
 
 <div id="idMessage"></div>
 
-<fieldset><legend>Gestion (<input type="button" value="Ouvrir" onclick="openGestionDiv(this)"/>)</legend>
+<fieldset><legend><span data-lang-key="index-manage">Gestion des index</span> (<input type="button" value="Ouvrir" data-lang-key="button-open" onclick="openGestionDiv(this)"/>)</legend>
 <div id="idDivGestion" style="display:none">
-	<input type="button" value="Ajouter index" id="idAddIndex"/>
-	<input type="button" value="Supprimer tous les index" id="idDeleteIndexes"/>
-	<input type="button" value="Supprimer tous les donnees" id="idDeleteEntries"/>
-	<input type="button" value="Generer les index" id="idGenerateIndexes"/>
+	<input type="button" value="Ajouter index" data-lang-key="index-add" id="idAddIndex"/>
+	<input type="button" value="Supprimer tous les index" data-lang-key="index-delete" id="idDeleteIndexes"/>
+	<input type="button" value="Supprimer tous les donnees" data-lang-key="data-delete" id="idDeleteEntries"/>
+	<input type="button" value="Generer les index" data-lang-key="index-generate" id="idGenerateIndexes"/>
 	<div id="idListeIndexes"></div>
 </div>
 </fieldset>
 
 
-<fieldset><legend>Index créés</legend>
+<fieldset><legend><span data-lang-key="index-created">Index crées</span></legend>
 <div id="idListeExistingIndexes"></div>
 </fieldset>
 
 
-<fieldset><legend>Données</legend>
+<fieldset><legend><span data-lang-key="datas">Données</span></legend>
 
-<input type="button" value="Ajouter entree" id="idAddEntry"/>
-<input type="button" value="Rechercher" id="idSearchButton"/>
+<input type="button" value="Ajouter entree" id="idAddEntry" data-lang-key="data-add"/>
+<input type="button" value="Rechercher" id="idSearchButton" data-lang-key="data-search"/>
 
 <div id="idAjoutLigne" style="display:none">
 	<form>
-	Valeur : <input type="text" id="idValueData"/>
-	<input type="submit" value="Ajout" id="idAddLigne" />
-	<input type="button" value="Fermer" onclick="$('#idAjoutLigne').hide()"/>
+	<span data-lang-key="data-value">Valeur</span> : <input type="text" id="idValueData"/>
+	<input type="submit" value="Ajout" data-lang-key="data-add-action" id="idAddLigne" />
+	<input type="button" value="Fermer" data-lang-key="button-close" onclick="$('#idAjoutLigne').hide()"/>
 	</form>
 </div>
 
 <div id="idRecherche" style="display:none">
 	<form>	
-		Valeur : <input type="text" id="idSearchValue"/>
-		Type de recherche : <input type="radio" value="0" name="searchType" checked="checked" id="idRadioChamp"/><label for="idRadioChamp">Champ</label>
-		<input type="radio" value="1" name="searchType" id="idRadioGlobal"/><label for="idRadioGlobal">Global</label>
-		Nombre : <input type="text" id="idNbResults" size="3"/>
-		<input type="submit" value="Rechercher" id="idSearchIn"/>
-		<input type="button" value="Fermer" onclick="$('#idRecherche').hide()"/>
+		<span data-lang-key="data-value">Valeur</span> : <input type="text" id="idSearchValue"/>
+		<span data-lang-key="search-type">Type de recherche</span> :
+        <input type="radio" value="0" name="searchType" checked="checked" id="idRadioChamp"/><label for="idRadioChamp" data-lang-key="search-field">Champ</label>
+		<input type="radio" value="1" name="searchType" id="idRadioGlobal"/><label for="idRadioGlobal" data-lang-key="search-global">Global</label>
+		<span data-lang-key="search-number">Nombre</span> : <input type="text" id="idNbResults" size="3"/>
+		<input type="submit" value="Rechercher" data-lang-key="data-search-action" id="idSearchIn"/>
+		<input data-lang-key="button-close" type="button" value="Fermer" onclick="$('#idRecherche').hide()"/>
 	</form>
 
 </div>
 
 <div id="idResultats" style="width:80%;">
-	Total : <span id="idTotal"></span><br/>
-	<table class="table" style="width:100%" id="idTableResultats"><tr><th style="width:50px">#</th><th>Index</th><th>Score</th><th>Valeur</th></tr></table>
+	<span data-lang-key="total">Total</span> : <span id="idTotal"></span><br/>
+	<table class="table" style="width:100%" id="idTableResultats"><tr><th style="width:50px">#</th>
+        <th data-lang-key="result-index">Index</th>
+        <th data-lang-key="result-score">Score</th>
+        <th data-lang-key="result-value">Valeur</th>
+    </tr></table>
 </div>
 
 </fieldset>
 
 <div style="display:none" id="idTemplateIndex">
 	<span style="display:inline-block;width:30px;height:15px;" class="colorpicker">&nbsp;</span>	
-	Tokenizer : <select id="idTokenizer"></select>
-	Filtres : <select id="idFilters" size="3"></select>
+	<span data-lang-key="tokenizer">Tokenizer</span> : <select id="idTokenizer"></select>
+	<span data-lang-key="filtres">Filtres</span> : <select id="idFilters" size="3"></select>
 	=> 
 	<select id="idSelectedFilters" size="3"></select>
 	<input type="button" value="Supprimer" onclick="$(this).closest('div').remove()"/>
