@@ -34,7 +34,7 @@ var languageTabs = {
 	   "search":"Rechercher",
 	   "search-action":"Rechercher",
 	   "delete":"Supprimer toutes les données",
-	   "data-title":"Données"
+	   "title":"Données"
    }  
    
 };
