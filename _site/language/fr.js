@@ -1,28 +1,41 @@
 var languageTabs = {
-   host:"HOST",
-   prefix:"PREFIX",
-   tokenizer:"Tokenizer",
-   filtres:"Filtres",
-   "button-open":"Ouvrir",
-   "button-close":"Fermer",
-   "result-value":"Valeur",
-   "result-score":"Score",
-   "result-index":"Index",
-   "search-type":"type de recherche",
-   "search-global":"Global",
-   "search-field":"Champ",
-   "search-number":"Nombre",
-   "data-value":"Valeur",
-   "data-add":"Ajouter entrée",
-   "data-add-action":"Ajout",
-   "data-search":"Rechercher",
-   "data-search-action":"Rechercher",
-   "data-delete":"Supprimer toutes les données",
-   "datas":"Données",
-   "index-generate":"Generer les index",
-   "index-delete":"Supprimer tous les index",
-   "index-add":"Ajouter index",
-   "index-manage":"Gestion des index",
-   "index-created":"Index créés",
-   "connect":"Se connecter"
+   "host":"HOST",
+   "prefix":"PREFIX",
+   "tokenizer":"Tokenizer",
+   "filtres":"Filtres",
+   "button":{
+   	   "open":"Ouvrir",
+   	   "close":"Fermer",
+   	   "connect":"Se connecter",
+   },
+   "result":{
+	   "value":"Valeur",
+	   "score":"Score",
+	   "index":"Index"
+   },
+   "search":{
+	   "type":"type de recherche",
+	   "global":"Global",
+	   "field":"Champ",
+	   "number":"Nombre"	   
+   },
+   "index":{
+	   "generate":"Generer les index",
+	   "delete":"Supprimer tous les index",
+	   "add":"Ajouter index",
+	   "manage":"Gestion des index",
+	   "created":"Index créés",
+	   "cancel":"Annuler"
+   },
+   "data":{
+	   "value":"Valeur",
+	   "add":"Ajouter entrée",
+	   "add-action":"Ajout",
+	   "search":"Rechercher",
+	   "search-action":"Rechercher",
+	   "delete":"Supprimer toutes les données",
+	   "data-title":"Données"
+   }  
+   
 };
+
