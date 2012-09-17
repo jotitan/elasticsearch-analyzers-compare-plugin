@@ -96,8 +96,8 @@ function deleteAllEntries(){
 }
 
 /* Supprime tous les index de test cree */
-function deleteAllIndexes(){
-	if(confirm("Etes vous sur de vouloir supprimer tous les index ?")){
+function deleteAllIndexes(){	
+	if(prompt("Attention, vous allez supprimer tous vos index de test (irréversible). \nPour confirmer, veuillez taper DELETE dans le champ","") == "DELETE"){
 		$(indexes).each(function(){
 			$.ajax({
 				url:URL_ROOT + '/' + this.id,
