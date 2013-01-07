@@ -130,7 +130,7 @@ function getIndexById(id){
 	return index;
 }
 
-/* Represente un index */
+/* Represente un index.  */
 function Index(index,tokenizer,filters,color,existing){
 	this.id = index;
 	this.color = color;
@@ -138,38 +138,107 @@ function Index(index,tokenizer,filters,color,existing){
 	this.filters = filters;
 	this.nbDatas = 0;
 	this.existing = existing;	// Indique que l'index existe deja, on ne peut pas le creer
+	this.tokenizerSearch = null;	// ces 2 champs sont utilises uniquement quand l'analyzer de recherche et d'index sont differents
+	this.filtersSearch = null;	
+	this.hasDifferentsAnalyzers = function(){
+		return (this.tokenizerSearch!=null && this.filtersSearch!=null);
+	}
 	this.getJSON = function(){
 		if(this.existing){return;}
-		var filtersArray = ["standard"];//,"lowercase"];
-		var filtersDefinitions = {};
+		var isAnalyzersDifferent = this.hasDifferentsAnalyzers();
+		var filtersArray = ["standard"];	// Liste des filtres pour l'indexation
+		var filtersSearchArray = ["standard"];	// Liste des filtres pour la recherche.
+		var filtersDefinitions = {};	// Tous les filtres, même ceux de filtersSearch
 		$(this.filters).each(function(i){
 			filtersArray[i+1] = this.name;
 			if(this.options!=null){
 				filtersDefinitions[this.name] = this.options;
 			}
 		});
+		
 		var tokenizerDefinition = {};
 		if(tokenizer.options!=null){
 			tokenizerDefinition[tokenizer.name] = tokenizer.options;
 		}
-		return {analysis:{filter:filtersDefinitions,tokenizer:tokenizerDefinition,analyzer:{'myanalyzer':{type:"custom",tokenizer:this.tokenizer.name,filter:filtersArray}}}};
+		// Cas des analyzers differents
+		if(isAnalyzersDifferent){
+			$(this.filtersSearch).each(function(i){
+				filtersSearchArray[i+1] = this.name;
+				if(this.options!=null){
+					filtersDefinitions[this.name] = this.options;
+				}
+			});
+			if(this.tokenizerSearch.options!=null){
+				tokenizerDefinition[this.tokenizerSearch.name] = this.tokenizerSearch.options;
+			}
+		}
+		var index =  {analysis:{filter:filtersDefinitions,tokenizer:tokenizerDefinition,
+			analyzer:{
+				'indexanalyzer':{type:"custom",tokenizer:this.tokenizer.name,filter:filtersArray}
+			}}
+		};
+		// Si les analysers search et index sont indentiques, on copie la conf
+		if(isAnalyzersDifferent){
+			return {analysis:{filter:filtersDefinitions,tokenizer:tokenizerDefinition,
+				analyzer:{
+					'default_index':{type:"custom",tokenizer:this.tokenizer.name,filter:filtersArray},
+					'default_search':{type:"custom",tokenizer:this.tokenizerSearch.name,filter:filtersSearchArray}
+				}}
+			};			
+		}
+		else{
+			return {analysis:{filter:filtersDefinitions,tokenizer:tokenizerDefinition,
+				analyzer:{
+					'default':{type:"custom",tokenizer:this.tokenizer.name,filter:filtersArray}
+				}}
+			};
+		}
 	}
 }
 
 /* Genere les index dans elasticsearch */
 function genererIndex(){
-	$('#idListeIndexes > div').each(function(pos){
-		var tokenizerOpt = $(this).find('#idTokenizer > option:selected');
-		if(tokenizerOpt.length > 0){
-			var tokenizer = new Element(tokenizers[tokenizerOpt.val()].name,tokenizers[tokenizerOpt.val()].options);
-			var filtersSelected = [];				
-			$(this).find('#idSelectedFilters > option').each(function(i){
-				filtersSelected[i] = new Element(filters[$(this).val()].name,filters[$(this).val()].options);
-			});
-			var index = new Index(PREFIX_INDEX + (pos+nbExistingIndexes) ,tokenizer,filtersSelected,$(this).find('span:first').css('backgroundColor'),false);
+	// On remet à jour le nombre d'index (on prend le plus grand numero)
+	nbExistingIndexes = 0;
+	$(indexes).each(function(){
+		nbExistingIndexes = Math.max(nbExistingIndexes,parseInt(this.id.replace(PREFIX_INDEX,''))+1);		
+	});
+	$('#idListeIndexes > div.root_index').each(function(pos){
+		// Double index recherche / indexation ou non
+		var index = getIndexInfo($(this),pos);
+		if($('#idTypeIndex',this).val() >0){
+			var searchIndex = getIndexInfo($('.second_index',$(this)),pos);
+			// cas ou le search analyzer est defini en premier, on inverse la def
+			if($('#idTypeIndex',this).val() == 2){	
+				index.filtersSearch = index.filters;
+				index.tokenizerSearch = index.tokenizer;
+				index.tokenizer = searchIndex.tokenizer;
+				index.filters = searchIndex.filters;				
+			}
+			else{
+				index.tokenizerSearch = searchIndex.tokenizer;
+				index.filtersSearch = searchIndex.filters;
+			}
+		}				
+		if(index!=null){
 			addIndexes(index,$(this));
 		}
 	});
+}
+
+/* Recupere les infos d'un index a partir du div */
+function getIndexInfo(div,pos){
+	var tokenizerOpt = div.find('#idTokenizer > option:selected');
+	if(tokenizerOpt.length > 0){
+		var tokenizer = new Element(tokenizers[tokenizerOpt.val()].name,tokenizers[tokenizerOpt.val()].options);
+		var filtersSelected = [];				
+		div.find('#idSelectedFilters:first > option').each(function(i){
+			filtersSelected[i] = new Element(filters[$(this).val()].name,filters[$(this).val()].options);
+		});
+		var index = new Index(PREFIX_INDEX + (pos+nbExistingIndexes) ,tokenizer,filtersSelected,div.find('span:first').css('backgroundColor'),false);
+		return index;
+	}
+	return null;
 }
 
 /* Cree un nouvel index dans elasticsearch (objet index en parametre) */
@@ -185,12 +254,13 @@ function addIndexes(index,div){
 				$.ajax({
 					url:URL_ROOT + '/' + index.id + '/test/_mapping',
 					type:'PUT',
-					data:'{test:{index_analyzer:"myanalyzer",search_analyzer:"myanalyzer",properties:{"data":{"type":"string","analyzer":"myanalyzer"}}}}',
+					data:'{test:{properties:{"data":{"type":"string"}}}}',
 					dataType:'json',
 					success:function(data){
 						if(data.ok){					
 							indexes.push(index);
 							showCreatedIndex(index,div);
+							nbExistingIndexes++;
 						}
 						else{
 							div.find('span:last').text('KO').css('color','red');
@@ -209,35 +279,80 @@ function addIndexes(index,div){
 	
 }
 
+function _showFilters(filters,div){
+	if(filters.length > 0){
+		div.append(', <span style="font-weight:bold">Filtres</span> : ');	
+		$(filters).each(function(i){
+			div.append(this.name + ', ');
+		});
+	}
+}
+
 /* Affiche un index nouvellement cree */
 function showCreatedIndex(index,div){
 	if(index == null || index.tokenizer == null){return;}
 	div.empty();
 	div.append('<span style="background-color:' + index.color + ';width:30px;height:15px;display:inline-block"></span>&nbsp;&nbsp;<span style="color:' + index.color + '">' + index.id + '</span>');
-	div.append(', <span style="font-weight:bold">Tokenizer</span> : ' + index.tokenizer.name);
-	if(index.filters.length > 0){
-		div.append(', <span style="font-weight:bold">Filtres</span> : ');	
-		$(index.filters).each(function(i){
-			div.append(this.name + ', ');
-		});
+	// S'il existe des analyzers differents pour index/search, on l'indique		
+	if(index.hasDifferentsAnalyzers()){
+		div.append(', <span style="color:red;font-weight:bold">index</span> : ');
+		div.append('tokenizer ' + index.tokenizer.name);
+		_showFilters(index.filters,div);
+		div.append(', <span style="color:red;font-weight:bold">search</span> : ');
+		div.append('tokenizer ' + index.tokenizerSearch.name);
+		_showFilters(index.filtersSearch,div);
+	}
+	else{
+		div.append(', tokenizer ' + index.tokenizer.name);
+		_showFilters(index.filters,div);
 	}
 	div.appendTo($('#idListeExistingIndexes'));
 }
 
 /* Affiche un bloc de creation d'un index */
-function addIndex(){
-	var template = $('#idTemplateIndex').clone().removeAttr('id');
-	$('span.colorpicker',template).css('backgroundColor',colors[($('#idListeIndexes > div').length + nbExistingIndexes)%colors.length]);
-	$('#idFilters > option',template).dblclick(function(a){
+function displayAddIndex(){
+	var template = $('#idTemplateIndex').clone();
+	template.removeAttr('id').addClass('root_index');
+	var color = colors[($('#idListeIndexes > div.root_index').length + nbExistingIndexes)%colors.length];
+	$('span.colorpicker',template).css('backgroundColor',color);
+	$('.filters:first > option',template).dblclick(function(a){
 		var option = $(a.currentTarget);
 		if(option.attr('disabled') == true){return;}
-		$('#idSelectedFilters',template).append('<option value="' + option.val() + '">' + option.find('span').text() + '</option>');
+		$('#idSelectedFilters:first',$(this).closest("div")).append('<option value="' + option.val() + '">' + option.find('span').text() + '</option>');
 		option.attr('disabled','disabled');
 	});
 	$('#idSelectedFilters > option',template).live('dblclick',function(a){
-		var option = $(a.currentTarget);console.log(option);
-		$('#idFilters > option[value="' + option.val() + '"]',template).removeAttr('disabled');
+		var option = $(a.currentTarget);
+		$('.filters > option[value="' + option.val() + '"]',template).removeAttr('disabled');
 		option.remove();
+	});
+	/* Ajout du comportement sur le type d'analyzers (recherche et / ou indexation) */
+	$('#idTypeIndex > option',template).click(function(){
+		if($(this).val() == 0){
+			// On supprimer le deuxieme au cas ou
+			$('.second_index',template).remove();
+		}
+		else{
+			var title = $('#idTypeIndex > option[value=' + ((($(this).val())%2)+1) + ']',template).text();
+			// on duplique s'il faut
+			if($('.second_index',template).length == 0){
+				var templateSecond = $('#idTemplateIndex').clone().removeAttr('id');
+				templateSecond.attr('class','second_index');
+				$('#idTypeIndex',templateSecond).before('<span class="titleType">' + title + '</span>');
+				$('#idTypeIndex',templateSecond).remove();
+				$('.filters > option',templateSecond).dblclick(function(a){
+				var option = $(a.currentTarget);
+				if(option.attr('disabled') == true){return;}
+				$('#idSelectedFilters',templateSecond).append('<option value="' + option.val() + '">' + option.find('span').text() + '</option>');
+				option.attr('disabled','disabled');
+			});
+				templateSecond.find('span.colorpicker').css('background-color','white');
+				template.append(templateSecond.show());
+			}else{
+				// On renomme le type
+				$('.titleType',template).text(title);
+			}
+		}
 	});
 	template.appendTo($('#idListeIndexes')).show();
 }
@@ -308,6 +423,10 @@ function cleanDisplayedIndex(){
 	
 }
 
+function _getInfo(elem,data,index,setting,pos){
+	return new Element(elem[data[index].settings[setting]].name,elem[data[index].settings[setting]].options,pos);
+}
+
 /* Cherche les index deja crees et les affiches */
 function getAllIndexes(){
 	cleanDisplayedIndex();
@@ -316,20 +435,45 @@ function getAllIndexes(){
 		dataType:'json',
 		type:'GET',
 		success:function(data){
+			var DEF_FIL = "default.filter";
+			var IDX_FIL = "default_index.filter";
+			var SEA_FIL = "default_search.filter";
+
+			var DEF_TOK = "default.tokenizer";
+			var IDX_TOK = "default_index.tokenizer";
+			var SEA_TOK = "default_search.tokenizer";
 			for(var index in data){
 				// On charge uniquement les indexs de test
 				if(index.indexOf(PREFIX_INDEX) == 0){
 					var filtersSelected = [];		
+					var filtersSearchSelected = [];
 					var tokenizer = null;
+					var tokenizerSearch = null;
+					var isDifferentsAnalyzers = false;	// Indique les analyzers differents index / search
 					for(var setting in data[index].settings){
-						// Ajout de filtre
-						if(setting.indexOf("myanalyzer.filter")!=-1){
-							var pos = setting.substr(setting.indexOf("myanalyzer.filter") + 18);
-							filtersSelected[filtersSelected.length] = new Element(filters[data[index].settings[setting]].name,filters[data[index].settings[setting]].options,pos);
+						// On test s'il y a un analyzer d'index et de recherche
+						if(setting.indexOf(".default_search.")!=-1 || setting.indexOf("default_index")!=-1){
+							isDifferentsAnalyzers = true;
 						}
-						if(setting.indexOf("myanalyzer.tokenizer")!=-1){
+						// Ajout de filtre
+						if(setting.indexOf(DEF_FIL)!=-1 || setting.indexOf(IDX_FIL)!=-1){
+							var pos = (isDifferentsAnalyzers)?
+								setting.substr(setting.indexOf(DEF_FIL) + 18):
+								setting.substr(setting.indexOf(IDX_FIL) + 18);
+							filtersSelected[filtersSelected.length] = _getInfo(filters,data,index,setting,pos);
+						}
+						if(setting.indexOf(SEA_FIL)!=-1){
+							var pos = setting.substr(setting.indexOf(SEA_FIL) + 18);
+							filtersSearchSelected[filtersSearchSelected.length] = _getInfo(filters,data,index,setting,pos);
+						}
+						if(setting.indexOf(DEF_TOK)!=-1 || setting.indexOf(IDX_TOK)!=-1){
 							if(tokenizers!=null && tokenizers[data[index].settings[setting]] != null){
-								tokenizer = new Element(tokenizers[data[index].settings[setting]].name,tokenizers[data[index].settings[setting]].options);
+								tokenizer = _getInfo(tokenizers,data,index,setting);
+							}
+						}
+						if(setting.indexOf(SEA_TOK)!=-1){
+							if(tokenizers!=null && tokenizers[data[index].settings[setting]] != null){
+								tokenizerSearch = _getInfo(tokenizers,data,index,setting);
 							}
 						}					
 					}
@@ -337,7 +481,15 @@ function getAllIndexes(){
 					filtersSelected.sort(function(a,b){
 						return (a.pos == b.pos)?0:(a.pos > b.pos)?1:-1;
 					});
+					filtersSearchSelected.sort(function(a,b){
+						return (a.pos == b.pos)?0:(a.pos > b.pos)?1:-1;
+					});
+
 					var indexObject = new Index(index,tokenizer,filtersSelected,colors[nbExistingIndexes],true);
+					if(isDifferentsAnalyzers){
+						indexObject.tokenizerSearch = tokenizerSearch;
+						indexObject.filtersSearch = filtersSearchSelected;
+					}
 					indexes.push(indexObject);
 					// Recuperation du nombre d'objet
 					$.ajax({
@@ -369,7 +521,7 @@ function loadTokenizersFilters(){
 		if(filters[filter].options!=null){
 			var option = $('<option value="' + filter + '"></option>');
 			option.append(filters[filter].label);
-			$('#idFilters').append(option);
+			$('.filters').append(option);
 		}
 	}
 }
@@ -394,7 +546,7 @@ function initConfigButtons(){
 		$('#idSearchValue').focus();
 	});
 
-	$('#idAddIndex').click(function(){addIndex();});
+	$('#idAddIndex').click(function(){displayAddIndex();});
 	$('#idDeleteIndexes').click(function(){deleteAllIndexes();});
 	$('#idDeleteEntries').click(function(){deleteAllEntries();});
 	$('#idGenerateIndexes').click(function(){genererIndex();});
@@ -531,11 +683,21 @@ $(function(){
 </fieldset>
 
 <div style="display:none" id="idTemplateIndex">
-	<span style="display:inline-block;width:30px;height:15px;" class="colorpicker">&nbsp;</span>	
-	<span data-lang-key="tokenizer">Tokenizer</span> : <select id="idTokenizer"></select>
-	<span data-lang-key="filtres">Filtres</span> : <select id="idFilters" size="3"></select>
-	=> 
-	<select id="idSelectedFilters" size="3"></select>
+	<span style="vertical-align:super;display:inline-block;width:30px;height:15px;" class="colorpicker">&nbsp;</span>	
+	<span style="vertical-align:super">
+		<span>Type</span> : 
+		<span style="width:200px;display:inline-block">
+			<select id="idTypeIndex" style="width:100%">
+				<option value="0">Indexation et recherche</option>
+				<option value="1">Indexation</option>
+				<option value="2">Recherche</option>
+			</select>
+		</span>
+		<span data-lang-key="tokenizer">Tokenizer</span> : <select id="idTokenizer"></select>	
+		<span data-lang-key="filtres">Filtres</span> : 
+	</span>
+	<select class="filters" size="3" style="font-size:11px;"></select>=> 
+	<select id="idSelectedFilters" size="3" style="font-size:11px;"></select>
 	<input type="button" data-lang-key="index.cancel" value="Annuler" onclick="$(this).closest('div').remove()"/>
 	<span></span>
 </div>
