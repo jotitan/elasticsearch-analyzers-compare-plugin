@@ -25,7 +25,12 @@ var languageTabs = {
 	   "add":"Add index",
 	   "manage":"Manage indexes",
 	   "created":"Indexes created",
-	   "cancel":"Cancel"
+	   "cancel":"Cancel",
+	   "type":{
+		"search-index":"Index and Search",
+		"search":"Search",
+		"index":"Index"
+	   }
    },
    "data":{
 	   "value":"Value",
@@ -50,5 +55,4 @@ filters.ngram4.label="<span>nGram 4-10</span> (cut words in parts 4 to 10c)";
 filters.stemmer_light.label="<span>Stemmer light french</span> (french stem)";
 filters.stemmer_french.label="<span>Stemmer french</span> (other french stem)";
 filters.stemmer_minimal_french.label="<span>Stemmer minimal french</span> (other french stem)";
-
 
