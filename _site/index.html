@@ -592,7 +592,7 @@ function loadInternationalisation(callback){
             alert("Pas de langue disponible pour " + navigator.language);
             return;
         }
-        $('span[data-lang-key],th[data-lang-key],label[data-lang-key]').each(function(){
+        $('span[data-lang-key],th[data-lang-key],label[data-lang-key],option[data-lang-key]').each(function(){
             var value = getObjectValue(languageTabs,$(this).data('lang-key'));
             if(value!=null){$(this).text(value);}
         });
@@ -688,9 +688,9 @@ $(function(){
 		<span>Type</span> : 
 		<span style="width:200px;display:inline-block">
 			<select id="idTypeIndex" style="width:100%">
-				<option value="0">Indexation et recherche</option>
-				<option value="1">Indexation</option>
-				<option value="2">Recherche</option>
+				<option value="0" data-lang-key="index.type.search-index">Indexation et recherche</option>
+				<option value="1" data-lang-key="index.type.index">Indexation</option>
+				<option value="2" data-lang-key="index.type.search">Recherche</option>
 			</select>
 		</span>
 		<span data-lang-key="tokenizer">Tokenizer</span> : <select id="idTokenizer"></select>	
