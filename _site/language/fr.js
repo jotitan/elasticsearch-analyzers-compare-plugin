@@ -25,7 +25,12 @@ var languageTabs = {
 	   "add":"Ajouter index",
 	   "manage":"Gestion des index",
 	   "created":"Index créés",
-	   "cancel":"Annuler"
+	   "cancel":"Annuler",
+	   "type":{
+		"search-index":"Indexation et recherche",
+		"search":"Recherche",
+		"index":"Indexation"
+	   }
    },
    "data":{
 	   "value":"Valeur",
@@ -38,4 +43,3 @@ var languageTabs = {
    }  
    
 };
-
