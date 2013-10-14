@@ -60,6 +60,8 @@ var filters = {
 	stop:{name:"stop",label:"<span>Stopwords</span> (Mots écartés de la recherche, trop communs)",options:{type:"stop",ignore_case:true,stopwords:["alors","au","aucuns","aussi","autre","avant","avec","avoir","bon","car","ce","cela","ces","ceux","chaque","ci","comme","comment","dans","de","des","du","dedans","dehors","depuis","deux","devrait","doit","donc","dos","droite","début","elle","elles","en","encore","essai","est","et","eu","fait","faites","fois","font","force","haut","hors","ici","il","ils","je","juste","la","le","les","leur","là","ma","maintenant","mais","mes","mine","moins","mon","mot","même","ni","nommés","notre","nous","nouveaux","ou","où","par","parce","parole","pas","personnes","peut","peu","pièce","plupart","pour","pourquoi","quand","que","quel","quelle","quelles","quels","qui","sa","sans","ses","seulement","si","sien","son","sont","sous","soyez","sujet","sur","ta","tandis","tellement","tels","tes","ton","tous","tout","trop","très","tu","valeur","voie","voient","vont","votre","vous","vu","ça","étaient","état","étions","été","être"]}},
 	snowball:{name:"snowball",label:"<span>Snowball</span> (Cherche la racine francaise)",options:{type:"snowball",language:"French"}},
 	double_metaphone:{name:"double_metaphone",label:"<span>Double metaphone</span> (Analyse phonetic, detecte les mots sonnants pareils)",options:{type:"phonetic",encoder:"double_metaphone",replace:false}},
+	metaphone:{name:"metaphone",label:"<span>Metaphone</span> (Analyse phonetic-1990)",options:{type:"phonetic",encoder:"metaphone",replace:false}},
+	soundex:{name:"soundex",label:"<span>Soundex</span> (Analyse phonetic)",options:{type:"phonetic",encoder:"soundex",replace:false}},	
 	ngram5:{name:"ngram5",label:"<span>nGram 5-10</span> (Coupe les mots en parties de 5 a 10c)",options:{type:'nGram',min_gram:5,max_gram:10}},
 	ngram4:{name:"ngram4",label:"<span>nGram 4-10</span> (Coupe les mots en parties de 4 a 10c)",options:{type:'nGram',min_gram:4,max_gram:10}},
 	stemmer_light:{name:"stemmer_light",label:"<span>Stemmer light french</span> (Cherche la racine francaise (autre dico))",options:{type:"stemmer",name:"light_french"}},
@@ -386,11 +388,13 @@ function searchInIndexes(){
 	var nb = ($('#idNbResults').val()!='')?$('#idNbResults').val():10;
 	var params = '{size:' + nb + ',';
 	if(($(':radio:checked','#idRecherche').val() == 0)){
-		params+='query:{text:{data:"' + $('#idSearchValue').val() + '"}}}';
+		params+='query:{text:{data:"' + $('#idSearchValue').val() + '"}}';
 	}
 	else{
-		params+='query:{query_string:{query:"' + $('#idSearchValue').val() + '"}}}';
+		params+='query:{query_string:{query:"' + $('#idSearchValue').val() + '"}}';
 	}
+	// Ajout du highlight
+	params+=',highlight:{fields:{data:{fragment_size:20,number_of_fragments:1}}}}';
 	$('tr:not(:has(th))','#idTableResultats').remove();
 	$.ajax({
 		url:URL_ROOT + '/_search',
@@ -405,8 +409,14 @@ function searchInIndexes(){
 				$(json.hits.hits).each(function(pos){
 					var index = getIndexById(this._index);
 					if(index != null){					
-						var tr = $('<tr><td>' + (pos+1) + '</td><td style="color:' + index.color + '">' + index.id + '</td><td>' + this._score + '</td><td>' + this._source.data + '</td></tr>');
-						$('#idTableResultats').append(tr);
+						var tr = '<tr><td>' + (pos+1) + '</td><td style="color:' + index.color + '">' + index.id + '</td><td>' + this._score + '</td><td>' + this._source.data + '</td>';
+						if(this.highlight!=null && this.highlight.data.length > 0){
+							tr+='<td>' + this.highlight.data[0] + '</td></tr>';
+						}
+						else{
+							tr+='<td></td></tr>';
+						}
+						$('#idTableResultats').append($(tr));
 					}
 				});				
 			}
@@ -677,6 +687,7 @@ $(function(){
         <th data-lang-key="result.index">Index</th>
         <th data-lang-key="result.score">Score</th>
         <th data-lang-key="result.value">Valeur</th>
+        <th data-lang-key="result.highlight">Highlight</th>
     </tr></table>
 </div>
 
