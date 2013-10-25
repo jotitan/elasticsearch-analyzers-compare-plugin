@@ -396,7 +396,7 @@ function searchInIndexes(){
 		params+='query:{query_string:{query:"' + $('#idSearchValue').val() + '"}}';
 	}
 	// Ajout du highlight
-	params+=',highlight:{fields:{data:{fragment_size:20,number_of_fragments:1}}}}';
+	params+=',highlight:{pre_tags:["<mark>"],post_tags:["</mark>"],fields:{data:{fragment_size:20,number_of_fragments:1}}}}';
 	$('tr:not(:has(th))','#idTableResultats').remove();
 	$.ajax({
 		url:URL_ROOT + '/_search',

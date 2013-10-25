@@ -9,7 +9,7 @@ h2. Installation
 
 Il suffit d’utiliser le plugin d’installation : ‘bin/plugin -install jotitan/elasticsearch-analyzers-compare-plugin/1.0.2’.
 
-Le champ PREFIX permet de définir un prefix commun à tous les indexs qui seront créés. Si le prefixe n’est pas précisé, il est possible de tout supprimer tous les indexs présents sur le serveur. Il faut faire attention en manipulant le plugin au risque de perdre toutes ses données.
+Le champ PREFIX permet de définir un prefix commun à tous les index qui seront créés. Si le prefixe n’est pas précisé, il est possible de supprimer tous les index et les données présents sur le serveur.
 
 h2. Création d'index
 
@@ -19,12 +19,21 @@ Il est également possible de différencier l'analyzer utlisé pour l'indexation
 
 h2. Recherche
 
-La recherche peut se faire de deux manières : soit sur un champ analysé (type de recherche "champ") ou une recherche global (type de recherche "global") équivalent à la _search?q=*.
-La recherche "champ" s'effectue sur le même champ dans tous les indexs (mais analyzés différemment) appelé "data".
-La recherche globale ne permet donc pas l'utilisation des analyzers et n'est pas très pertinente, elle permet surtout de comparer le résultat d'une recherche analyzée ou non.
+La recherche peut se faire de deux manières : soit sur un champ analysé (type de recherche "text") ou une recherche url équivalent à "_search?q=*"".
+La recherche "text" s'effectue sur le même champ dans tous les index (mais configurés différemment) appelé "data".
+La recherche uri ne permet pas de configurer la requête, mais uniquement de rechercher avec "q=mavaleur".
+
+h2. Résultats
+
+Lors d'une recherche, les champs suivants sont renvoyés :
+* La valeur du champ
+* Le score du document
+* L'index où a été trouvé le document
+* Le valeur du champ highlighté
 
 h2. Fonctionnalités supplémentaires
 
-Le plugin prend en charge l'internationalisation
+Le plugin prend en charge l'internationalisation.
+
 
 !http://jotitan.github.com/elasticsearch-analyzers-compare-plugin/screenshots/screenshot1.png(Exemple)!
