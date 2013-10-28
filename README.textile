@@ -7,7 +7,7 @@ Attention : il faut le plugin phonetic installé (ou le commenter dans la page w
 
 h2. Installation
 
-Il suffit d’utiliser le plugin d’installation : ‘bin/plugin -install jotitan/elasticsearch-analyzers-compare-plugin/1.0.2’.
+Il suffit d’utiliser le plugin d’installation : ‘./bin/plugin -u http://jotitan.free.fr/download/elasticsearch-analyzers-compare-plugin-1.0.3.zip -i elasticsearch-analyzers-compare-plugin’.
 
 Le champ PREFIX permet de définir un prefix commun à tous les index qui seront créés. Si le prefixe n’est pas précisé, il est possible de supprimer tous les index et les données présents sur le serveur.
 
