@@ -39,7 +39,8 @@ var languageTabs = {
 	   "search":"Search",
 	   "search-action":"Search",
 	   "delete":"Delete all datas",
-	   "title":"Datas"
+	   "title":"Datas",
+	   "list":"List all"
    }  
    
 };
@@ -55,4 +56,5 @@ filters.ngram4.label="<span>nGram 4-10</span> (cut words in parts 4 to 10c)";
 filters.stemmer_light.label="<span>Stemmer light french</span> (french stem)";
 filters.stemmer_french.label="<span>Stemmer french</span> (other french stem)";
 filters.stemmer_minimal_french.label="<span>Stemmer minimal french</span> (other french stem)";
+filters.edgengram5.label="<span>edgenGram 3-10</span> (Cut words in differents parts of 3 to 10 length, start at begin)"
 
