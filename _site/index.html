@@ -140,7 +140,6 @@ function Index(index,tokenizer,filters,color,existing){
 	this.color = color;
 	this.tokenizer = tokenizer;
 	this.filters = filters;
-	this.nbDatas = 0;
 	this.existing = existing;	// Indique que l'index existe deja, on ne peut pas le creer
 	this.tokenizerSearch = null;	// ces 2 champs sont utilises uniquement quand l'analyzer de recherche et d'index sont differents
 	this.filtersSearch = null;	
@@ -365,11 +364,12 @@ function displayAddIndex(){
 function addLigne(){
 	$('#idMessage').empty();
 	var data = $('#idValueData').val();
+	if(data == ""){return;}
 	$(indexes).each(function(){
 		var index = this;
 		$.ajax({
-			url:URL_ROOT + '/' + this.id + '/test/' + (++this.nbDatas),
-			type:'PUT',
+			url:URL_ROOT + '/' + this.id + '/test/',
+			type:'POST',
 			dataType:'json',
 			data:'{"data":"' + data + '"}',
 			success:function(data){
@@ -385,7 +385,7 @@ function addLigne(){
 	$('#idValueData').val('');
 }
 
-/* Effectue la recherche dans les differents indexs */
+/* Effectue la recherche dans les differents index */
 function searchInIndexes(){
 	var nb = ($('#idNbResults').val()!='')?$('#idNbResults').val():10;
 	var params = '{size:' + nb + ',';
@@ -396,7 +396,7 @@ function searchInIndexes(){
 		params+='query:{query_string:{query:"' + $('#idSearchValue').val() + '"}}';
 	}
 	// Ajout du highlight
-	params+=',highlight:{pre_tags:["<mark>"],post_tags:["</mark>"],fields:{data:{fragment_size:20,number_of_fragments:1}}}}';
+	params+=',highlight:{pre_tags:["<mark>"],post_tags:["</mark>"],fields:{data:{number_of_fragments:0}}}}';
 	$('tr:not(:has(th))','#idTableResultats').remove();
 	$.ajax({
 		url:URL_ROOT + '/_search',
@@ -411,13 +411,41 @@ function searchInIndexes(){
 				$(json.hits.hits).each(function(pos){
 					var index = getIndexById(this._index);
 					if(index != null){					
-						var tr = '<tr><td>' + (pos+1) + '</td><td style="color:' + index.color + '">' + index.id + '</td><td>' + this._score + '</td><td>' + this._source.data + '</td>';
+						var tr = '<tr><td>' + (pos+1) + '</td><td style="color:' + index.color + '">' + index.id + '</td><td>' + this._score + '</td>';
 						if(this.highlight!=null && this.highlight.data.length > 0){
 							tr+='<td>' + this.highlight.data[0] + '</td></tr>';
 						}
 						else{
-							tr+='<td></td></tr>';
+							tr+='<td>' + this._source.data + '</td></tr>';
 						}
+						$('#idTableResultats').append($(tr));
+					}
+				});				
+			}
+		},
+		error:function(a,b,c){alert("ERREUR : " + a + " " + b + " " + c);}
+	});
+	
+}
+
+/* Liste toutes les donnees de l'index, se base sur le premier */
+function listDatas(){
+	if(indexes.length == 0){return;}
+	var index = indexes[0].id;	
+	$('tr:not(:has(th))','#idTableResultats').remove();
+	$.ajax({
+		url:URL_ROOT + '/' + index + '/_search',
+		type:'POST',
+		dataType:'json',
+		success:function(data){
+			var json = data;
+			if(json==null || json.hits == null){return;}
+			$('#idTotal').text(json.hits.total);
+			if(json.hits.total > 0){
+				$(json.hits.hits).each(function(pos){
+					var index = getIndexById(this._index);
+					if(index != null){					
+						var tr = '<tr><td>' + (pos+1) + '</td><td colspan="3">' + this._source.data + '</td></tr>';
 						$('#idTableResultats').append($(tr));
 					}
 				});				
@@ -435,6 +463,7 @@ function cleanDisplayedIndex(){
 	
 }
 
+/* Recupere une info sur un filter / token dans les settings de l'index */
 function _getInfo(elem,data,index,setting,pos){
 	return new Element(elem[data[index].settings[setting]].name,elem[data[index].settings[setting]].options,pos);
 }
@@ -455,7 +484,7 @@ function getAllIndexes(){
 			var IDX_TOK = "default_index.tokenizer";
 			var SEA_TOK = "default_search.tokenizer";
 			for(var index in data){
-				// On charge uniquement les indexs de test
+				// On charge uniquement les index de test
 				if(index.indexOf(PREFIX_INDEX) == 0){
 					var filtersSelected = [];		
 					var filtersSearchSelected = [];
@@ -503,16 +532,6 @@ function getAllIndexes(){
 						indexObject.filtersSearch = filtersSearchSelected;
 					}
 					indexes.push(indexObject);
-					// Recuperation du nombre d'objet
-					$.ajax({
-						url:URL_ROOT + '/' + index + '/_search?q=*',
-						dataType:'json',
-						type:'GET',
-						success:function(data){
-							var json = data;
-							indexObject.nbDatas = json.hits.total;
-						}
-					});
 					nbExistingIndexes++;
 					// On affiche l'index
 					var div = $('<div></div>');
@@ -557,6 +576,8 @@ function initConfigButtons(){
 		$('#idRecherche').show();
 		$('#idSearchValue').focus();
 	});
+	
+	$('#idLoadDatas').click(listDatas);
 
 	$('#idAddIndex').click(function(){displayAddIndex();});
 	$('#idDeleteIndexes').click(function(){deleteAllIndexes();});
@@ -661,6 +682,7 @@ $(function(){
 
 <input type="button" value="Ajouter entree" id="idAddEntry" data-lang-key="data.add"/>
 <input type="button" value="Rechercher" id="idSearchButton" data-lang-key="data.search"/>
+<input type="button" value="Tout lister" id="idLoadDatas"/>
 
 <div id="idAjoutLigne" style="display:none">
 	<form>
@@ -689,7 +711,6 @@ $(function(){
         <th data-lang-key="result.index">Index</th>
         <th data-lang-key="result.score">Score</th>
         <th data-lang-key="result.value">Valeur</th>
-        <th data-lang-key="result.highlight">Highlight</th>
     </tr></table>
 </div>
 
