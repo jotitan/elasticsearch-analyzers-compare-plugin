@@ -46,6 +46,7 @@ var nbExistingIndexes = 0;
 var indexes = new Array();
 var tokenizers = {
 	standard:{name:"standard",label:"Standard"},
+	whitespace:{name:"whitespace",label:"Whitespace"},
 	ngram4:{name:"ngram4",label:"nGram 4-10",options:{type:"nGram",min_gram:4,max_gram:10}},
 	ngram5:{name:"ngram5",label:"nGram 5-10",options:{type:"nGram",min_gram:5,max_gram:10}},
 	edgengram4:{name:"edgengram4",label:"Edge nGram 4-10",options:{type:"edgeNGram",min_gram:4,max_gram:10}},
@@ -266,18 +267,18 @@ function addIndexes(index,div){
 							nbExistingIndexes++;
 						}
 						else{
-							div.find('span:last').text('KO').css('color','red');
+							$('span:last',div).text('KO').css('color','red');
 						}
 					}
 				});								
 			}
 			else{
-				div.find('span:last').text('KO').css('color','red');
+				$('span:last',div).text('KO').css('color','red');
 			}
 			
 
 		},
-		error:function(a,b,c){div.find('span:last').text('KO').css('color','red');}
+		error:function(a,b,c){$('span:last',div).text('KO').css('color','red');}
 	});
 	
 }
@@ -557,6 +558,87 @@ function loadTokenizersFilters(){
 	}
 }
 
+/* Affiche l'ecran de duplication d'un index */
+function showDupliqueIndex(){
+	$.ajax({
+		url:URL_ROOT + '/_settings',
+		dataType:'json',
+		type:'GET',
+		success:function(data){
+			var div = $('#idDivDuplique');
+			$('select > option:not(:first)',div).remove();
+			for(var index in data){
+				$('select',div).append('<option value="' + index + '">' + index + '</option>');
+			}
+			div.show();
+		}
+	});
+}
+var test = null;
+/* Dupliquer l'index */
+function duplicateIndex(){
+	var div  = $('<div></div>');
+	var index = $('select','#idDivDuplique').val();
+	if(index == null || index == ""){return;}
+	
+	$.ajax({
+		url:URL_ROOT + '/' + index + '/_mapping',
+		dataType:'json',
+		type:'GET',
+		success:function(data){
+			test = data;
+			// On prend le dernier type
+			var type = null;
+			for(var t in data[index]){type = t;}
+			var indexAnalyzer = data[index][t].analyzer || data[index][t].index_analyzer;
+			var searchAnalyzer = data[index][t].analyzer || data[index][t].search_analyzer;
+			/* On recupere la configuration du mapping (dans les settings) */
+			$.ajax({
+				url:URL_ROOT + '/' + index + '/_settings',
+				dataType:'json',
+				type:'GET',
+				success:function(data){
+					var analyzer = _getAnalyzerInfo(indexAnalyzer,data[index].settings);
+					var indexToCreate = new Index(PREFIX_INDEX + (nbExistingIndexes) ,analyzer.tokenizer,analyzer.filters,colors[nbExistingIndexes%colors.length],false);
+					if(indexAnalyzer!=searchAnalyzer){
+						var searchIndex = _getAnalyzerInfo(searchAnalyzer,data[index].settings);
+						indexToCreate.filtersSearch = indexToCreate.filters;
+						indexToCreate.tokenizerSearch = indexToCreate.tokenizer;
+						indexToCreate.tokenizer = searchIndex.tokenizer;
+						indexToCreate.filters = searchIndex.filters;	
+					}
+					addIndexes(indexToCreate,$('<div></div>'));
+					
+				}
+			});
+		}
+	});
+}
+
+function _getAnalyzerInfo(analyzerName,datas){
+	var analyzer = {filters:[],tokenizer:null};
+	for(var name in datas){
+		if(name.indexOf("index.analysis.analyzer." + analyzerName)!=-1){
+			/* Cas d'un filtre */
+			if(name.indexOf(".filter.")!=-1){
+				// On verifie qu'on le possede
+				var filter = filters[datas[name]];
+				if(filter!=null){
+					var pos = name.substring(name.lastIndexOf(".")+1);
+					analyzer.filters.push(new Element(filter.name,filter.options,(pos!=null)?pos:0));
+				}
+			}
+			if(name.indexOf(".tokenizer")!=-1){
+				var tokenizer = tokenizers[datas[name]];
+				if(tokenizer!=null){
+					analyzer.tokenizer = new Element(tokenizer.name,tokenizer.options);
+				}
+			}
+		}
+	}
+	return analyzer;
+}
+
 /* Switch sur un autre server */
 function changeServerConnect(url,prefix){
 	URL_ROOT = url;
@@ -583,6 +665,8 @@ function initConfigButtons(){
 	$('#idDeleteIndexes').click(function(){deleteAllIndexes();});
 	$('#idDeleteEntries').click(function(){deleteAllEntries();});
 	$('#idGenerateIndexes').click(function(){genererIndex();});
+	$('#idShowDuplicateIndex').click(function(){showDupliqueIndex();});
+	$('#idDuplicateIndex').click(function(){duplicateIndex();});
 	$('#idSearchIn').click(function(){searchInIndexes();return false;});
 	$('#idAddLigne').click(function(){addLigne();return false;});
 }
@@ -668,7 +752,12 @@ $(function(){
 	<input type="button" value="Supprimer tous les index" data-lang-key="index.delete" id="idDeleteIndexes"/>
 	<input type="button" value="Supprimer tous les donnees" data-lang-key="data.delete" id="idDeleteEntries"/>
 	<input type="button" value="Generer les index" data-lang-key="index.generate" id="idGenerateIndexes"/>
+	<input type="button" value="Dupliquer un index" data-lang-key="index.duplicate" id="idShowDuplicateIndex"/>
 	<div id="idListeIndexes"></div>
+</div>
+<div id="idDivDuplique" style="display:none">
+	Dupliquer l'index : <select><option>---</option></select>
+	<input type="button" value="Dupliquer" id="idDuplicateIndex"/>
 </div>
 </fieldset>
 
@@ -683,6 +772,8 @@ $(function(){
 <input type="button" value="Ajouter entree" id="idAddEntry" data-lang-key="data.add"/>
 <input type="button" value="Rechercher" id="idSearchButton" data-lang-key="data.search"/>
 <input type="button" value="Tout lister" id="idLoadDatas" data-lang-key="data.list"/>
+
+
 
 <div id="idAjoutLigne" style="display:none">
 	<form>
