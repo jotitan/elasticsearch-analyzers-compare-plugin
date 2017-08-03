@@ -253,7 +253,7 @@ function addIndexes(index,div){
 		dataType:'json',
 		type:'PUT',
 		success:function(data){
-			if(data.ok){
+			if(data != null && data.ok){
 				// On ajoute le mapping
 				$.ajax({
 					url:URL_ROOT + '/' + index.id + '/test/_mapping',
@@ -331,7 +331,8 @@ function displayAddIndex(){
 		option.remove();
 	});
 	/* Ajout du comportement sur le type d'analyzers (recherche et / ou indexation) */
-	$('#idTypeIndex > option',template).click(function(){
+	$('#idTypeIndex',template).bind('change',function(){
+	//$('#idTypeIndex > option',template).click(function(){
 		if($(this).val() == 0){
 			// On supprimer le deuxieme au cas ou
 			$('.second_index',template).remove();
