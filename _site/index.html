@@ -36,6 +36,12 @@ form {
 	margin-bottom:0px;
 }
 
+optgroup {
+	font-variant:small-caps;
+	background-color:darkgray;
+	color:white;
+}
+
 </style>
 
 
@@ -56,24 +62,24 @@ var tokenizers = {
 	edgengram5:{name:"edgengram5",label:"Edge nGram 5-10",options:{type:"edgeNGram",min_gram:5,max_gram:10}}	
 };
 var filters = {
-	standard:{name:"standard",label:"Standard"},
-	reverse:{name:"reverse",label:"<span>Reverse</span>",options:{type:"reverse"}},
-	lowercase:{name:"lowercase",label:"<span>Lowercase</span>",options:{type:"lowercase"}},
-	word_delimiter:{name:"word_delimiter",label:"<span>Word delimiter</span> (découpe les mots suivants plusieurs règles)",options:{type:"word_delimiter"}},
-	asciifolding:{name:"asciifolding",label:"<span>Asciifolding</span> (supprime les accents)",options:{type:"asciifolding"}},
-	elision:{name:"elision",label:"<span>Elision</span> (Enlève les liaisons : d')",options:{type:"elision",articles:["l","m","t","qu","n","s","j","d"]}},
-	stop:{name:"stop",label:"<span>Stopwords</span> (Mots écartés de la recherche, trop communs)",options:{type:"stop",ignore_case:true,stopwords:["alors","au","aucuns","aussi","autre","avant","avec","avoir","bon","car","ce","cela","ces","ceux","chaque","ci","comme","comment","dans","de","des","du","dedans","dehors","depuis","deux","devrait","doit","donc","dos","droite","début","elle","elles","en","encore","essai","est","et","eu","fait","faites","fois","font","force","haut","hors","ici","il","ils","je","juste","la","le","les","leur","là","ma","maintenant","mais","mes","mine","moins","mon","mot","même","ni","nommés","notre","nous","nouveaux","ou","où","par","parce","parole","pas","personnes","peut","peu","pièce","plupart","pour","pourquoi","quand","que","quel","quelle","quelles","quels","qui","sa","sans","ses","seulement","si","sien","son","sont","sous","soyez","sujet","sur","ta","tandis","tellement","tels","tes","ton","tous","tout","trop","très","tu","valeur","voie","voient","vont","votre","vous","vu","ça","étaient","état","étions","été","être"]}},
-	snowball:{name:"snowball",label:"<span>Snowball</span> (Cherche la racine francaise)",options:{type:"snowball",language:"French"}},
-	french_phonetic:{name:"french_phonetic",label:"<span>French phonetic</span> (Analyse phonetique francaise par hcapitaine)",options:{type:"french_phonetic"}},
-	double_metaphone:{name:"double_metaphone",label:"<span>Double metaphone</span> (Analyse phonetic, detecte les mots sonnants pareils)",options:{type:"phonetic",encoder:"double_metaphone",replace:false}},
-	metaphone:{name:"metaphone",label:"<span>Metaphone</span> (Analyse phonetic-1990)",options:{type:"phonetic",encoder:"metaphone",replace:false}},
-	soundex:{name:"soundex",label:"<span>Soundex</span> (Analyse phonetic)",options:{type:"phonetic",encoder:"soundex",replace:false}},	
-	edgengram5:{name:"edgengram5",label:"<span>edgenGram 3-10</span> (Coupe les mots en parties de 3 a 10c en commencant au debut)",options:{type:'edgeNGram',min_gram:3,max_gram:10}},
-	ngram5:{name:"ngram5",label:"<span>nGram 5-10</span> (Coupe les mots en parties de 5 a 10c)",options:{type:'nGram',min_gram:5,max_gram:10}},
-	ngram4:{name:"ngram4",label:"<span>nGram 4-10</span> (Coupe les mots en parties de 4 a 10c)",options:{type:'nGram',min_gram:4,max_gram:10}},
-	stemmer_light:{name:"stemmer_light",label:"<span>Stemmer light french</span> (Cherche la racine francaise (autre dico))",options:{type:"stemmer",name:"light_french"}},
-	stemmer_french:{name:"stemmer_french",label:"<span>Stemmer french</span> (Cherche la racine francaise (autre dico))",options:{type:"stemmer",name:"french"}},
-	stemmer_minimal_french:{name:"stemmer_minimal_french",label:"<span>Stemmer minimal french</span> (Cherche la racine francaise (autre dico))",options:{type:"stemmer",name:"minimal_french"}}
+	standard:{name:"standard",label:"Standard",group:"standard"},
+	reverse:{name:"reverse",label:"<span>Reverse</span>",options:{type:"reverse"},group:"standard"},
+	lowercase:{name:"lowercase",label:"<span>Lowercase</span>",options:{type:"lowercase"},group:"standard"},
+	word_delimiter:{name:"word_delimiter",label:"<span>Word delimiter</span> (découpe les mots suivants plusieurs règles)",options:{type:"word_delimiter"},group:"standard"},
+	asciifolding:{name:"asciifolding",label:"<span>Asciifolding</span> (supprime les accents)",options:{type:"asciifolding"},group:"standard"},
+	elision:{name:"elision",label:"<span>Elision</span> (Enlève les liaisons : d')",options:{type:"elision",articles:["l","m","t","qu","n","s","j","d"]},group:"standard"},
+	stop:{name:"stop",label:"<span>Stopwords</span> (Mots écartés de la recherche, trop communs)",options:{type:"stop",ignore_case:true,stopwords:["alors","au","aucuns","aussi","autre","avant","avec","avoir","bon","car","ce","cela","ces","ceux","chaque","ci","comme","comment","dans","de","des","du","dedans","dehors","depuis","deux","devrait","doit","donc","dos","droite","début","elle","elles","en","encore","essai","est","et","eu","fait","faites","fois","font","force","haut","hors","ici","il","ils","je","juste","la","le","les","leur","là","ma","maintenant","mais","mes","mine","moins","mon","mot","même","ni","nommés","notre","nous","nouveaux","ou","où","par","parce","parole","pas","personnes","peut","peu","pièce","plupart","pour","pourquoi","quand","que","quel","quelle","quelles","quels","qui","sa","sans","ses","seulement","si","sien","son","sont","sous","soyez","sujet","sur","ta","tandis","tellement","tels","tes","ton","tous","tout","trop","très","tu","valeur","voie","voient","vont","votre","vous","vu","ça","étaient","état","étions","été","être"]},group:"standard"},
+	french_phonetic:{name:"french_phonetic",label:"<span>French phonetic</span> (Analyse phonetique francaise par hcapitaine)",options:{type:"french_phonetic"},group:"phonetic"},
+	double_metaphone:{name:"double_metaphone",label:"<span>Double metaphone</span> (Analyse phonetic, detecte les mots sonnants pareils)",options:{type:"phonetic",encoder:"double_metaphone",replace:false},group:"phonetic"},
+	metaphone:{name:"metaphone",label:"<span>Metaphone</span> (Analyse phonetic-1990)",options:{type:"phonetic",encoder:"metaphone",replace:false},group:"phonetic"},
+	soundex:{name:"soundex",label:"<span>Soundex</span> (Analyse phonetic)",options:{type:"phonetic",encoder:"soundex",replace:false},group:"phonetic"},	
+	edgengram5:{name:"edgengram5",label:"<span>edgenGram 3-10</span> (Coupe les mots en parties de 3 a 10c en commencant au debut)",options:{type:'edgeNGram',min_gram:3,max_gram:10},group:"ngram"},
+	ngram5:{name:"ngram5",label:"<span>nGram 5-10</span> (Coupe les mots en parties de 5 a 10c)",options:{type:'nGram',min_gram:5,max_gram:10},group:"ngram"},
+	ngram4:{name:"ngram4",label:"<span>nGram 4-10</span> (Coupe les mots en parties de 4 a 10c)",options:{type:'nGram',min_gram:4,max_gram:10},group:"ngram"},
+	snowball:{name:"snowball",label:"<span>Snowball</span> (Cherche la racine francaise)",options:{type:"snowball",language:"French"},group:"stemmer"},
+	stemmer_light:{name:"stemmer_light",label:"<span>Stemmer light french</span> (Cherche la racine francaise (autre dico))",options:{type:"stemmer",name:"light_french"},group:"stemmer"},
+	stemmer_french:{name:"stemmer_french",label:"<span>Stemmer french</span> (Cherche la racine francaise (autre dico))",options:{type:"stemmer",name:"french"},group:"stemmer"},
+	stemmer_minimal_french:{name:"stemmer_minimal_french",label:"<span>Stemmer minimal french</span> (Cherche la racine francaise (autre dico))",options:{type:"stemmer",name:"minimal_french"},group:"stemmer"}
 	
 };
 
@@ -323,11 +329,12 @@ function displayAddIndex(){
 	template.removeAttr('id').addClass('root_index');
 	var color = colors[($('#idListeIndexes > div.root_index').length + nbExistingIndexes)%colors.length];
 	$('span.colorpicker',template).css('backgroundColor',color);
-	$('.filters:first > option',template).dblclick(function(a){
-		var option = $(a.currentTarget);
-		if(option.attr('disabled') == true){return;}
+	$('.filters:first',template).change(function(a){		
+		var option = $(":selected",this);
+		if(option.val() == -1 || option.attr('disabled') == true){return;}
 		$('#idSelectedFilters:first',$(this).closest("div")).append('<option value="' + option.val() + '">' + option.find('span').text() + '</option>');
 		option.attr('disabled','disabled');
+		$(this).val(-1);
 	});
 	$('#idSelectedFilters > option',template).live('dblclick',function(a){
 		var option = $(a.currentTarget);
@@ -561,8 +568,13 @@ function loadTokenizersFilters(){
 	for(var tokenizer in tokenizers){
 		$('#idTokenizer').append('<option value="' + tokenizer + '">' + tokenizers[tokenizer].label + '</option>');
 	}
+	var current = null;
 	for(var filter in filters){
 		if(filters[filter].options!=null){
+			if(current == null || current!=filters[filter].group){
+				current = filters[filter].group;
+				$('.filters').append('<optgroup label="' + current + '"></optgroup>');
+			}
 			var option = $('<option value="' + filter + '"></option>');
 			option.append(filters[filter].label);
 			$('.filters').append(option);
@@ -593,6 +605,8 @@ function changeServerConnect(){
 }
 
 function initConfigButtons(){
+	// Use current URI to find ES URI (on port 9200)
+	URL_ROOT = "http://" + location.host.split(":")[0] + ":9200";
 	$('#idUrlConnect').val(URL_ROOT);
 	$('#idPrefixIndex').val(PREFIX_INDEX);
 	$('#idAddEntry').click(function(){
@@ -752,7 +766,7 @@ $(function(){
 
 <div style="display:none" id="idTemplateIndex">
 	<span style="vertical-align:super;display:inline-block;width:30px;height:15px;" class="colorpicker">&nbsp;</span>	
-	<span style="vertical-align:super">
+	<span style="vertical-align:super;display:ineline-block">
 		<span>Type</span> : 
 		<span style="width:200px;display:inline-block">
 			<select id="idTypeIndex" style="width:100%">
@@ -761,11 +775,14 @@ $(function(){
 				<option value="2" data-lang-key="index.type.search">Recherche</option>
 			</select>
 		</span>
-		<span data-lang-key="tokenizer">Tokenizer</span> : <select id="idTokenizer"></select>	
-		<span data-lang-key="filtres">Filtres</span> : 
 	</span>
-	<select class="filters" size="3" style="font-size:11px;"></select>=> 
-	<select id="idSelectedFilters" size="3" style="font-size:11px;"></select>
+	<span style="display:inline-block">
+		<span data-lang-key="tokenizer" style="width:70px;display:inline-block">Tokenizer</span> : 
+		<select id="idTokenizer" style="font-size:11px;width:150px;"></select><br/>	
+		<span data-lang-key="filtres" style="width:70px;display:inline-block">Filtres</span> :
+		<select class="filters" size="1" style="font-size:11px;width:150px;"><option style="font-style:italic" value="-1">Sélectionnez un filtre</option></select>
+	</span>
+	<select id="idSelectedFilters" size="3" style="font-size:11px;width:150px;height:34px"></select>
 	<input type="button" data-lang-key="index.cancel" value="Annuler" onclick="$(this).closest('div').remove()"/>
 	<span></span>
 </div>
