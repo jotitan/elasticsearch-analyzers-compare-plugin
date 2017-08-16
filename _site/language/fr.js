@@ -4,9 +4,14 @@ var languageTabs = {
    "tokenizer":"Tokenizer",
    "filtres":"Filtres",
    "button":{
+		"edit":"Editer",
    	   "open":"Ouvrir",
    	   "close":"Fermer",
    	   "connect":"Se connecter",
+   },
+   "input":{
+		"login":"Login",
+		"addValue":"Ajouter une valeur",
    },
    "result":{
 	   "value":"Valeur",
@@ -14,7 +19,7 @@ var languageTabs = {
 	   "index":"Index"
    },
    "search":{
-	   "type":"type de recherche",
+	   "type":"Type",
 	   "global":"Global",
 	   "field":"Champ",
 	   "number":"Nombre"	   
@@ -24,7 +29,7 @@ var languageTabs = {
 	   "delete":"Supprimer tous les index",
 	   "add":"Ajouter index",
 	   "manage":"Gestion des index",
-	   "created":"Index créés",
+	   "created":"Index du cluster",
 	   "cancel":"Annuler",
 	   "type":{
 		"search-index":"Indexation et recherche",
@@ -33,11 +38,12 @@ var languageTabs = {
 	   }
    },
    "data":{
-	   "value":"Valeur",
+	   "value":"Quoi ?",
 	   "add":"Ajouter entrée",
-	   "add-action":"Ajout",
+	   "add-action":"Ajouter",
 	   "search":"Rechercher",
 	   "search-action":"Rechercher",
+	   "fuzzy-search":"Fuzziness (1)",
 	   "delete":"Supprimer toutes les données",
 	   "title":"Données",
 	   "list":"Tout lister"

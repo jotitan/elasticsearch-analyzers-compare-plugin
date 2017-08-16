@@ -38,6 +38,7 @@ var languageTabs = {
 	   "add-action":"Add",
 	   "search":"Search",
 	   "search-action":"Search",
+	   "fuzzy-search":"Fuzziness (1)",
 	   "delete":"Delete all datas",
 	   "title":"Datas",
 	   "list":"List all"

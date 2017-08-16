@@ -32,6 +32,10 @@ option span {font-weight:bold;}
 
 body {margin:0px;}
 
+form {
+	margin-bottom:0px;
+}
+
 </style>
 
 
@@ -46,7 +50,6 @@ var nbExistingIndexes = 0;
 var indexes = new Array();
 var tokenizers = {
 	standard:{name:"standard",label:"Standard"},
-	whitespace:{name:"whitespace",label:"Whitespace"},
 	ngram4:{name:"ngram4",label:"nGram 4-10",options:{type:"nGram",min_gram:4,max_gram:10}},
 	ngram5:{name:"ngram5",label:"nGram 5-10",options:{type:"nGram",min_gram:5,max_gram:10}},
 	edgengram4:{name:"edgengram4",label:"Edge nGram 4-10",options:{type:"edgeNGram",min_gram:4,max_gram:10}},
@@ -61,6 +64,7 @@ var filters = {
 	elision:{name:"elision",label:"<span>Elision</span> (Enlève les liaisons : d')",options:{type:"elision",articles:["l","m","t","qu","n","s","j","d"]}},
 	stop:{name:"stop",label:"<span>Stopwords</span> (Mots écartés de la recherche, trop communs)",options:{type:"stop",ignore_case:true,stopwords:["alors","au","aucuns","aussi","autre","avant","avec","avoir","bon","car","ce","cela","ces","ceux","chaque","ci","comme","comment","dans","de","des","du","dedans","dehors","depuis","deux","devrait","doit","donc","dos","droite","début","elle","elles","en","encore","essai","est","et","eu","fait","faites","fois","font","force","haut","hors","ici","il","ils","je","juste","la","le","les","leur","là","ma","maintenant","mais","mes","mine","moins","mon","mot","même","ni","nommés","notre","nous","nouveaux","ou","où","par","parce","parole","pas","personnes","peut","peu","pièce","plupart","pour","pourquoi","quand","que","quel","quelle","quelles","quels","qui","sa","sans","ses","seulement","si","sien","son","sont","sous","soyez","sujet","sur","ta","tandis","tellement","tels","tes","ton","tous","tout","trop","très","tu","valeur","voie","voient","vont","votre","vous","vu","ça","étaient","état","étions","été","être"]}},
 	snowball:{name:"snowball",label:"<span>Snowball</span> (Cherche la racine francaise)",options:{type:"snowball",language:"French"}},
+	french_phonetic:{name:"french_phonetic",label:"<span>French phonetic</span> (Analyse phonetique francaise par hcapitaine)",options:{type:"french_phonetic"}},
 	double_metaphone:{name:"double_metaphone",label:"<span>Double metaphone</span> (Analyse phonetic, detecte les mots sonnants pareils)",options:{type:"phonetic",encoder:"double_metaphone",replace:false}},
 	metaphone:{name:"metaphone",label:"<span>Metaphone</span> (Analyse phonetic-1990)",options:{type:"phonetic",encoder:"metaphone",replace:false}},
 	soundex:{name:"soundex",label:"<span>Soundex</span> (Analyse phonetic)",options:{type:"phonetic",encoder:"soundex",replace:false}},	
@@ -88,14 +92,15 @@ function openGestionDiv(button){
 function deleteAllEntries(){
 	if(confirm("Etes vous sur de vouloir supprimer toutes les donnees ?")){
 		$(indexes).each(function(){
-			$.ajax({
-				url:URL_ROOT + '/' + this.id + '/_query?q=*',
-				type:'DELETE',
+			$.ajax($.extend({},securityOptions,{
+				url:URL_ROOT + '/' + this.id + '/_delete_by_query',
+				data:'{"query":{"match_all":{}}}',
+				type:'POST',
 				dataType:'json',
 				success:function(data){
 
 				}
-			});
+			}));
 		});
 	}
 }
@@ -104,14 +109,14 @@ function deleteAllEntries(){
 function deleteAllIndexes(){	
 	if(prompt("Attention, vous allez supprimer tous vos index de test (irréversible). \nPour confirmer, veuillez taper DELETE dans le champ","") == "DELETE"){
 		$(indexes).each(function(){
-			$.ajax({
+			$.ajax($.extend({},securityOptions,{				
 				url:URL_ROOT + '/' + this.id,
 				type:'DELETE',
 				dataType:'json',
 				success:function(data){
 
 				}
-			});
+			}));
 		});
 		indexes = new Array();
 		$('#idListeExistingIndexes').empty();
@@ -185,7 +190,7 @@ function Index(index,tokenizer,filters,color,existing){
 		if(isAnalyzersDifferent){
 			return {analysis:{filter:filtersDefinitions,tokenizer:tokenizerDefinition,
 				analyzer:{
-					'default_index':{type:"custom",tokenizer:this.tokenizer.name,filter:filtersArray},
+					'default':{type:"custom",tokenizer:this.tokenizer.name,filter:filtersArray},
 					'default_search':{type:"custom",tokenizer:this.tokenizerSearch.name,filter:filtersSearchArray}
 				}}
 			};			
@@ -247,40 +252,39 @@ function getIndexInfo(div,pos){
 
 /* Cree un nouvel index dans elasticsearch (objet index en parametre) */
 function addIndexes(index,div){
-	$.ajax({
+	$.ajax($.extend({},securityOptions,{
 		url:URL_ROOT + '/' + index.id,
 		data:JSON.stringify(index.getJSON()),
 		dataType:'json',
 		type:'PUT',
 		success:function(data){
-			if(data != null && data.ok){
+			if(data.acknowledged){
 				// On ajoute le mapping
-				$.ajax({
+				$.ajax($.extend({},securityOptions,{
 					url:URL_ROOT + '/' + index.id + '/test/_mapping',
 					type:'PUT',
-					data:'{test:{properties:{"data":{"type":"string"}}}}',
+					data:'{"test":{"properties":{"data":{"type":"string"}}}}',
 					dataType:'json',
 					success:function(data){
-						if(data.ok){					
+						if(data.acknowledged){					
 							indexes.push(index);
 							showCreatedIndex(index,div);
 							nbExistingIndexes++;
 						}
 						else{
-							$('span:last',div).text('KO').css('color','red');
+							div.find('span:last').text('KO').css('color','red');
 						}
 					}
-				});								
+				}));								
 			}
 			else{
-				$('span:last',div).text('KO').css('color','red');
+				div.find('span:last').text('KO').css('color','red');
 			}
 			
 
 		},
-		error:function(a,b,c){$('span:last',div).text('KO').css('color','red');}
-	});
-	
+		error:function(a,b,c){div.find('span:last').text('KO').css('color','red');}
+	}));	
 }
 
 function _showFilters(filters,div){
@@ -332,7 +336,6 @@ function displayAddIndex(){
 	});
 	/* Ajout du comportement sur le type d'analyzers (recherche et / ou indexation) */
 	$('#idTypeIndex',template).bind('change',function(){
-	//$('#idTypeIndex > option',template).click(function(){
 		if($(this).val() == 0){
 			// On supprimer le deuxieme au cas ou
 			$('.second_index',template).remove();
@@ -369,20 +372,20 @@ function addLigne(){
 	if(data == ""){return;}
 	$(indexes).each(function(){
 		var index = this;
-		$.ajax({
+		$.ajax($.extend({},securityOptions,{
 			url:URL_ROOT + '/' + this.id + '/test/',
 			type:'POST',
 			dataType:'json',
 			data:'{"data":"' + data + '"}',
 			success:function(data){
-				if(data.ok){
+				if(data.result == "created"){
 					$('#idMessage').append('<span style="color:green">OK dans ' + index.id + '</span> - ');
 				}
 				else{
 					$('#idMessage').append('<span style="color:red">KO dans ' + index.id + '</span> - ');
 				}
 			}
-		});
+		}));
 	});
 	$('#idValueData').val('');
 }
@@ -390,17 +393,22 @@ function addLigne(){
 /* Effectue la recherche dans les differents index */
 function searchInIndexes(){
 	var nb = ($('#idNbResults').val()!='')?$('#idNbResults').val():10;
-	var params = '{size:' + nb + ',';
+	var params = '{"size":' + nb + ',';
+	var fuzzyOptions = "";
+	if($('#idFuzzy:checked').length != 0){
+		fuzzyOptions = ',"fuzziness":1';
+	}
 	if(($(':radio:checked','#idRecherche').val() == 0)){
-		params+='query:{text:{data:"' + $('#idSearchValue').val() + '"}}';
+		params+='"query":{"match":{"data":{"query":"' + $('#idSearchValue').val() + '"' + fuzzyOptions + '}}}';
 	}
 	else{
-		params+='query:{query_string:{query:"' + $('#idSearchValue').val() + '"}}';
+		params+='"query":{"query_string":{"query":"' + $('#idSearchValue').val() + '"}}';
 	}
 	// Ajout du highlight
-	params+=',highlight:{pre_tags:["<mark>"],post_tags:["</mark>"],fields:{data:{number_of_fragments:0}}}}';
+	params+=',"highlight":{"pre_tags":["<mark>"],"post_tags":["</mark>"],"fields":{"data":{"number_of_fragments":0}}}}';
+	console.log(params)
 	$('tr:not(:has(th))','#idTableResultats').remove();
-	$.ajax({
+	$.ajax($.extend({},securityOptions,{
 		url:URL_ROOT + '/_search',
 		data:params,
 		type:'POST',
@@ -425,8 +433,10 @@ function searchInIndexes(){
 				});				
 			}
 		},
-		error:function(a,b,c){alert("ERREUR : " + a + " " + b + " " + c);}
-	});
+		error:function(a,b,c){
+			console.log("ERREUR : " , a , b , c);
+		}
+	}));
 	
 }
 
@@ -435,7 +445,7 @@ function listDatas(){
 	if(indexes.length == 0){return;}
 	var index = indexes[0].id;	
 	$('tr:not(:has(th))','#idTableResultats').remove();
-	$.ajax({
+	$.ajax($.extend({},securityOptions,{
 		url:URL_ROOT + '/' + index + '/_search',
 		type:'POST',
 		dataType:'json',
@@ -454,8 +464,7 @@ function listDatas(){
 			}
 		},
 		error:function(a,b,c){alert("ERREUR : " + a + " " + b + " " + c);}
-	});
-	
+	}));	
 }
 
 function cleanDisplayedIndex(){
@@ -473,19 +482,16 @@ function _getInfo(elem,data,index,setting,pos){
 /* Cherche les index deja crees et les affiches */
 function getAllIndexes(){
 	cleanDisplayedIndex();
-	$.ajax({
+	$.ajax($.extend({},securityOptions,{
 		url:URL_ROOT + '/_settings',
 		dataType:'json',
 		type:'GET',
-		success:function(data){
-			var DEF_FIL = "default.filter";
-			var IDX_FIL = "default_index.filter";
-			var SEA_FIL = "default_search.filter";
-
-			var DEF_TOK = "default.tokenizer";
-			var IDX_TOK = "default_index.tokenizer";
-			var SEA_TOK = "default_search.tokenizer";
-			for(var index in data){
+		error:function(){
+			$('.connection_status').html('Impossible to connect').css('color','red');
+		},
+		success:function(data){		
+			$('.connection_status').html('Connected').css('color','green');
+			for(var index in data){				
 				// On charge uniquement les index de test
 				if(index.indexOf(PREFIX_INDEX) == 0){
 					var filtersSelected = [];		
@@ -493,33 +499,38 @@ function getAllIndexes(){
 					var tokenizer = null;
 					var tokenizerSearch = null;
 					var isDifferentsAnalyzers = false;	// Indique les analyzers differents index / search
-					for(var setting in data[index].settings){
-						// On test s'il y a un analyzer d'index et de recherche
-						if(setting.indexOf(".default_search.")!=-1 || setting.indexOf("default_index")!=-1){
-							isDifferentsAnalyzers = true;
+					//for(var setting in data[index].settings){
+					var indexDetail = data[index].settings.index.analysis;
+					var indexName = data[index].settings.index.provided_name;
+					
+					// On trouve la liste des filtres dans la definition de l'analyzer
+					for(var posFilter in indexDetail.analyzer.default.filter){
+						var filter = indexDetail.analyzer.default.filter[posFilter];
+						if(filter == "standard" || indexDetail.filter[filter]!=null){
+							filtersSelected.push(new Element(filter,filter == "standard" ? {} : indexDetail.filter[filter],0));
 						}
-						// Ajout de filtre
-						if(setting.indexOf(DEF_FIL)!=-1 || setting.indexOf(IDX_FIL)!=-1){
-							var pos = (isDifferentsAnalyzers)?
-								setting.substr(setting.indexOf(DEF_FIL) + 18):
-								setting.substr(setting.indexOf(IDX_FIL) + 18);
-							filtersSelected[filtersSelected.length] = _getInfo(filters,data,index,setting,pos);
-						}
-						if(setting.indexOf(SEA_FIL)!=-1){
-							var pos = setting.substr(setting.indexOf(SEA_FIL) + 18);
-							filtersSearchSelected[filtersSearchSelected.length] = _getInfo(filters,data,index,setting,pos);
-						}
-						if(setting.indexOf(DEF_TOK)!=-1 || setting.indexOf(IDX_TOK)!=-1){
-							if(tokenizers!=null && tokenizers[data[index].settings[setting]] != null){
-								tokenizer = _getInfo(tokenizers,data,index,setting);
-							}
-						}
-						if(setting.indexOf(SEA_TOK)!=-1){
-							if(tokenizers!=null && tokenizers[data[index].settings[setting]] != null){
-								tokenizerSearch = _getInfo(tokenizers,data,index,setting);
-							}
-						}					
 					}
+					var tokenizerName = indexDetail.analyzer.default.tokenizer;
+					if(tokenizerName == "standard" || indexDetail.tokenizer[tokenizerName]!=null){
+						tokenizer = new Element(tokenizerName,tokenizerName != "standard" ?indexDetail.tokenizer[tokenizerName]:{},0);
+					}
+					
+					// On test s'il y a un analyzer d'index et de recherche
+					if(indexDetail.analyzer.default_search != null){
+						isDifferentsAnalyzers = true;
+						for(var posFilter in indexDetail.analyzer.default_search.filter){
+						var filter = indexDetail.analyzer.default_search.filter[posFilter];
+							var detailFilter = indexDetail.filter[filter];
+							if(detailFilter!=null){
+								filtersSearchSelected.push(new Element(filter,detailFilter,0));
+							}
+						}
+						var tokenizerName = indexDetail.analyzer.default_search.tokenizer;
+						if(tokenizerName == "standard" || indexDetail.tokenizer[tokenizerName]!=null){
+							tokenizerSearch = new Element(tokenizerName,tokenizerName != "standard" ? indexDetail.tokenizer[tokenizerName]:{},0);
+						}
+					}
+					
 					// On (trie les filtres)
 					filtersSelected.sort(function(a,b){
 						return (a.pos == b.pos)?0:(a.pos > b.pos)?1:-1;
@@ -542,7 +553,7 @@ function getAllIndexes(){
 				}
 			}
 		}
-	});
+	}));
 }
 
 /* Charge les tokenizers et filters */
@@ -559,91 +570,25 @@ function loadTokenizersFilters(){
 	}
 }
 
-/* Affiche l'ecran de duplication d'un index */
-function showDupliqueIndex(){
-	$.ajax({
-		url:URL_ROOT + '/_settings',
-		dataType:'json',
-		type:'GET',
-		success:function(data){
-			var div = $('#idDivDuplique');
-			$('select > option:not(:first)',div).remove();
-			for(var index in data){
-				$('select',div).append('<option value="' + index + '">' + index + '</option>');
-			}
-			div.show();
-		}
-	});
-}
-var test = null;
-/* Dupliquer l'index */
-function duplicateIndex(){
-	var div  = $('<div></div>');
-	var index = $('select','#idDivDuplique').val();
-	if(index == null || index == ""){return;}
-	
-	$.ajax({
-		url:URL_ROOT + '/' + index + '/_mapping',
-		dataType:'json',
-		type:'GET',
-		success:function(data){
-			test = data;
-			// On prend le dernier type
-			var type = null;
-			for(var t in data[index]){type = t;}
-			var indexAnalyzer = data[index][t].analyzer || data[index][t].index_analyzer;
-			var searchAnalyzer = data[index][t].analyzer || data[index][t].search_analyzer;
-			/* On recupere la configuration du mapping (dans les settings) */
-			$.ajax({
-				url:URL_ROOT + '/' + index + '/_settings',
-				dataType:'json',
-				type:'GET',
-				success:function(data){
-					var analyzer = _getAnalyzerInfo(indexAnalyzer,data[index].settings);
-					var indexToCreate = new Index(PREFIX_INDEX + (nbExistingIndexes) ,analyzer.tokenizer,analyzer.filters,colors[nbExistingIndexes%colors.length],false);
-					if(indexAnalyzer!=searchAnalyzer){
-						var searchIndex = _getAnalyzerInfo(searchAnalyzer,data[index].settings);
-						indexToCreate.filtersSearch = indexToCreate.filters;
-						indexToCreate.tokenizerSearch = indexToCreate.tokenizer;
-						indexToCreate.tokenizer = searchIndex.tokenizer;
-						indexToCreate.filters = searchIndex.filters;	
-					}
-					addIndexes(indexToCreate,$('<div></div>'));
-					
-				}
-			});
-		}
-	});
-}
-
-function _getAnalyzerInfo(analyzerName,datas){
-	var analyzer = {filters:[],tokenizer:null};
-	for(var name in datas){
-		if(name.indexOf("index.analysis.analyzer." + analyzerName)!=-1){
-			/* Cas d'un filtre */
-			if(name.indexOf(".filter.")!=-1){
-				// On verifie qu'on le possede
-				var filter = filters[datas[name]];
-				if(filter!=null){
-					var pos = name.substring(name.lastIndexOf(".")+1);
-					analyzer.filters.push(new Element(filter.name,filter.options,(pos!=null)?pos:0));
-				}
-			}
-			if(name.indexOf(".tokenizer")!=-1){
-				var tokenizer = tokenizers[datas[name]];
-				if(tokenizer!=null){
-					analyzer.tokenizer = new Element(tokenizer.name,tokenizer.options);
-				}
-			}
-		}
-	}
-	return analyzer;
-}
+var securityOptions = {}
 
 /* Switch sur un autre server */
-function changeServerConnect(url,prefix){
-	URL_ROOT = url;
-	PREFIX_INDEX = prefix;
+function changeServerConnect(){
+	URL_ROOT = $('#idUrlConnect').val();
+	PREFIX_INDEX = $('#idPrefixIndex').val();
+	// Detect if login / password is defined
+	if($('#idLogin').val() != "" && $('#idPasswod').val() != ""){
+		securityOptions = {
+			xhrFields: {
+				withCredentials: true
+			},
+			beforeSend: function (xhr) {
+				xhr.setRequestHeader('Authorization', 'Basic ' + btoa($('#idLogin').val() + ':' + $('#idPassword').val()));
+			}
+		}		
+	}else{
+		securityOptions = {};
+	}
 	getAllIndexes();
 }
 
@@ -662,14 +607,17 @@ function initConfigButtons(){
 	
 	$('#idLoadDatas').click(listDatas);
 
-	$('#idAddIndex').click(function(){displayAddIndex();});
-	$('#idDeleteIndexes').click(function(){deleteAllIndexes();});
-	$('#idDeleteEntries').click(function(){deleteAllEntries();});
-	$('#idGenerateIndexes').click(function(){genererIndex();});
-	$('#idShowDuplicateIndex').click(function(){showDupliqueIndex();});
-	$('#idDuplicateIndex').click(function(){duplicateIndex();});
+	$('#idAddIndex').click(displayAddIndex);
+	$('#idDeleteIndexes').click(deleteAllIndexes);
+	$('#idDeleteEntries').click(deleteAllEntries);
+	$('#idGenerateIndexes').click(genererIndex);
 	$('#idSearchIn').click(function(){searchInIndexes();return false;});
 	$('#idAddLigne').click(function(){addLigne();return false;});
+	$('#idUrlConnect,#idLogin,#idPassword').bind('keypress',function(e){
+		if(e.keyCode == 13){
+			changeServerConnect();
+		}
+	});
 }
 
 function getInternationalLabel(key,defaultValue){
@@ -714,6 +662,10 @@ function loadInternationalisation(callback){
             var value = getObjectValue(languageTabs,$(this).data('lang-key'));
             if(value!=null){$(this).text(value);}
         });
+		$('input:text[placeholder]').each(function(){
+			var value = getObjectValue(languageTabs,$(this).data('lang-key'));
+            if(value!=null){$(this).attr("placeholder",value);}
+		});
         $('input:button[data-lang-key],input:submit[data-lang-key]').each(function(){
             var value = getObjectValue(languageTabs,$(this).data('lang-key'));
             if(value!=null){$(this).val(value);}
@@ -727,7 +679,7 @@ $(function(){
 	initConfigButtons();
     loadInternationalisation(function(){
         loadTokenizersFilters();
-        getAllIndexes();
+        //getAllIndexes();
     });
 
 });
@@ -738,68 +690,58 @@ $(function(){
 <div style="font-size:73%" class="server_info">
 	<h1 style="float:left;padding-right:20px;margin:-2px 0 0 0">ElasticSearch</h1>
 	<span>
-		<span data-lang-key="host">HOST</span> : <input type="text" id="idUrlConnect" style="margin-right:20px;"/>
-		<span data-lang-key="prefix">PREFIX</span> : <input type="text" id="idPrefixIndex"/>
-		<input type="button" data-lang-key="button.connect" value="Se connecter" onclick="changeServerConnect($('#idUrlConnect').val(),$('#idPrefixIndex').val())"/>
+		<span data-lang-key="host">HOST</span> : <input type="text" id="idUrlConnect"/>
+		- 
+		<input type="text" placeholder="Login" id="idLogin" value="elastic" size="10" data-lang-key="input.login"/>
+		:
+		<input type="password" value="changeme" placeholder="Password" id="idPassword" size="10"/>
+		<span style="margin-left:20px;" data-lang-key="prefix">PREFIX</span> : <input type="text" id="idPrefixIndex"/>
+		<input type="button" data-lang-key="button.connect" value="Se connecter" onclick="changeServerConnect()"/>
+		<span class="connection_status" style="margin-left:10px;"/>
 	</span>
 	<div style="clear:both"></div>
 </div>
 
 <div id="idMessage"></div>
 
-<fieldset><legend><span data-lang-key="index.manage">Gestion des index</span> (<input type="button" value="Ouvrir" data-lang-key="button.open" onclick="openGestionDiv(this)"/>)</legend>
+<fieldset><legend><span data-lang-key="index.created">Index du cluster</span>(<input type="button" value="Editer" data-lang-key="button.edit" onclick="openGestionDiv(this)"/>)</legend>
+<div id="idListeExistingIndexes"></div>
 <div id="idDivGestion" style="display:none">
 	<input type="button" value="Ajouter index" data-lang-key="index.add" id="idAddIndex"/>
 	<input type="button" value="Supprimer tous les index" data-lang-key="index.delete" id="idDeleteIndexes"/>
 	<input type="button" value="Supprimer tous les donnees" data-lang-key="data.delete" id="idDeleteEntries"/>
 	<input type="button" value="Generer les index" data-lang-key="index.generate" id="idGenerateIndexes"/>
-	<input type="button" value="Dupliquer un index" data-lang-key="index.duplicate" id="idShowDuplicateIndex"/>
 	<div id="idListeIndexes"></div>
 </div>
-<div id="idDivDuplique" style="display:none">
-	Dupliquer l'index : <select><option>---</option></select>
-	<input type="button" value="Dupliquer" id="idDuplicateIndex"/>
-</div>
 </fieldset>
-
-
-<fieldset><legend><span data-lang-key="index.created">Index crées</span></legend>
-<div id="idListeExistingIndexes"></div>
-</fieldset>
-
 
 <fieldset><legend><span data-lang-key="data.title">Données</span></legend>
 
-<input type="button" value="Ajouter entree" id="idAddEntry" data-lang-key="data.add"/>
-<input type="button" value="Rechercher" id="idSearchButton" data-lang-key="data.search"/>
-<input type="button" value="Tout lister" id="idLoadDatas" data-lang-key="data.list"/>
-
-
-
-<div id="idAjoutLigne" style="display:none">
+<div id="idAjoutLigne">
 	<form>
-	<span data-lang-key="data.value">Valeur</span> : <input type="text" id="idValueData"/>
-	<input type="submit" value="Ajout" data-lang-key="data.add-action" id="idAddLigne" />
-	<input type="button" value="Fermer" data-lang-key="button.close" onclick="$('#idAjoutLigne').hide()"/>
+		<input type="text" id="idValueData" data-lang-key="input.addValue" placeholder="Ajouter une valeur"/>
+		<input type="submit" value="Ajout" data-lang-key="data.add-action" id="idAddLigne" />
 	</form>
 </div>
 
-<div id="idRecherche" style="display:none">
+<div id="idRecherche">
 	<form>	
-		<span data-lang-key="data.value">Valeur</span> : <input type="text" id="idSearchValue"/>
+		<input type="text" id="idSearchValue" placeholder="Valeur" size="10" data-lang-key="data.value"/>
 		<span data-lang-key="search.type">Type de recherche</span> :
         <input type="radio" value="0" name="searchType" checked="checked" id="idRadioChamp"/><label for="idRadioChamp" data-lang-key="search.field">Champ</label>
 		<input type="radio" value="1" name="searchType" id="idRadioGlobal"/><label for="idRadioGlobal" data-lang-key="search.global">Global</label>
-		<span data-lang-key="search.number">Nombre</span> : <input type="text" id="idNbResults" size="3"/>
+		<input type="checkbox" value="true" id="idFuzzy"/><span data-lang-key="data.fuzzy-search"></span>
 		<input type="submit" value="Rechercher" data-lang-key="data.search-action" id="idSearchIn"/>
-		<input data-lang-key="button.close" type="button" value="Fermer" onclick="$('#idRecherche').hide()"/>
-	</form>
+		<input type="button" value="Tout lister" id="idLoadDatas" data-lang-key="data.list"/>
 
+		<span style="float:right">
+			<span data-lang-key="search.number">Nombre</span> : <input type="text" id="idNbResults" size="3"/>
+		</span>
+	</form>
 </div>
 
-<div id="idResultats" style="width:80%;">
-	<span data-lang-key="total">Total</span> : <span id="idTotal"></span><br/>
-	<table class="table" style="width:100%" id="idTableResultats"><tr><th style="width:50px">#</th>
+<div id="idResultats">
+	<table class="table" style="width:100%" id="idTableResultats"><tr><th style="width:50px"><span id="idTotal"></span></th>
         <th data-lang-key="result.index">Index</th>
         <th data-lang-key="result.score">Score</th>
         <th data-lang-key="result.value">Valeur</th>
