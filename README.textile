@@ -1,8 +1,8 @@
-﻿h1. elasticsearch-analyzers-compare-plugin
+h1. elasticsearch-analyzers-compare-plugin
 
 Plugin web permettant de tester et comparer différentes combinaisons de filtres / tokenizers pour elasticsearch (configuré pour le francais)
 
-/ ! \ : depuis la version 5.x d'Elasticsearch, les plugins site ne sont plus autorisés. Ce plugin doit être hebergé sur un autre serveur.
+*/ ! \* : depuis la version 5.x d'Elasticsearch, les plugins site ne sont plus autorisés. Ce plugin doit être hebergé sur un autre serveur.
 
 Plusieurs plugins sont nécessaires si vous voulez utilisez certaines fonctionnalités : 
 * Plugin phonetic : https://www.elastic.co/guide/en/elasticsearch/plugins/current/analysis-phonetic.html
@@ -12,13 +12,14 @@ h2. Installation
 
 Déployer le site sur le serveur de votre choix.
 Pour accéder au cluster ES, vous devez activez certaines fonctionnalités CORS. Dans votre fichier yaml, ajouter : 
+
 bc. http.cors.enabled: true
 http.cors.allow-origin: /.*/
 http.cors.allow-credentials: true
 http.cors.allow-headers: Authorization
 
 Le champ PREFIX permet de définir un prefix commun à tous les index qui seront créés. 
-Attention : si le prefixe n’est pas précisé, il est possible de supprimer tous les index et les données présents sur le serveur.
+*Attention* : si le prefixe n’est pas précisé, il est possible de supprimer tous les index et les données présents sur le serveur.
 
 h2. Création d'index
 
