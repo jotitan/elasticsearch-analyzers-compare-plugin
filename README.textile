@@ -10,8 +10,8 @@ Plusieurs plugins sont nécessaires si vous voulez utilisez certaines fonctionna
 
 h2. Installation
 
-Déployer le site sur le serveur de votre choix.
-Pour accéder au cluster ES, vous devez activez certaines fonctionnalités CORS. Dans votre fichier yaml, ajouter : 
+Déployez le site sur le serveur de votre choix.
+Pour accéder au cluster ES depuis le plugin, vous devez activer certaines fonctionnalités CORS. Dans votre fichier yaml, ajoutez : 
 
 bc. http.cors.enabled: true
 http.cors.allow-origin: /.*/
