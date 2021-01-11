@@ -21,6 +21,10 @@ http.cors.allow-headers: Authorization,Content-Type
 Le champ PREFIX permet de définir un prefix commun à tous les index qui seront créés. 
 *Attention* : si le prefixe n’est pas précisé, il est possible de supprimer tous les index et les données présents sur le serveur.
 
+Un serveur léger (micro_server.go) permet de lancer rapidement un serveur (avec go installé) : 
+go run micro_server.go 9015 /home/folder_with_site
+où 9015 est le port
+
 h2. Création d'index
 
 Il est possible de créer des index avec plusieurs filtres et un tokenizer particulier. 
