@@ -102,6 +102,7 @@ function deleteAllEntries(){
 				url:URL_ROOT + '/' + this.id + '/_delete_by_query',
 				data:'{"query":{"match_all":{}}}',
 				type:'POST',
+				contentType:'application/json',
 				dataType:'json',
 				success:function(data){
 
@@ -194,18 +195,24 @@ function Index(index,tokenizer,filters,color,existing){
 		};
 		// Si les analysers search et index sont indentiques, on copie la conf
 		if(isAnalyzersDifferent){
-			return {analysis:{filter:filtersDefinitions,tokenizer:tokenizerDefinition,
+			return {settings:{analysis:{filter:filtersDefinitions,tokenizer:tokenizerDefinition,
 				analyzer:{
 					'default':{type:"custom",tokenizer:this.tokenizer.name,filter:filtersArray},
 					'default_search':{type:"custom",tokenizer:this.tokenizerSearch.name,filter:filtersSearchArray}
-				}}
+				}}}
 			};			
 		}
 		else{
-			return {analysis:{filter:filtersDefinitions,tokenizer:tokenizerDefinition,
-				analyzer:{
-					'default':{type:"custom",tokenizer:this.tokenizer.name,filter:filtersArray}
-				}}
+			return {
+				settings:{
+					analysis:{
+						filter:filtersDefinitions,
+						tokenizer:tokenizerDefinition,
+						analyzer:{
+							'default':{type:"custom",tokenizer:this.tokenizer.name,filter:filtersArray}
+						}
+					}
+				}
 			};
 		}
 	}
@@ -262,6 +269,7 @@ function addIndexes(index,div){
 		url:URL_ROOT + '/' + index.id,
 		data:JSON.stringify(index.getJSON()),
 		dataType:'json',
+		contentType:'application/json',
 		type:'PUT',
 		success:function(data){
 			if(data.acknowledged){
@@ -269,7 +277,8 @@ function addIndexes(index,div){
 				$.ajax($.extend({},securityOptions,{
 					url:URL_ROOT + '/' + index.id + '/test/_mapping',
 					type:'PUT',
-					data:'{"test":{"properties":{"data":{"type":"string"}}}}',
+					contentType:'application/json',
+					data:'{"test":{"properties":{"data":{"type":"text"}}}}',
 					dataType:'json',
 					success:function(data){
 						if(data.acknowledged){					
@@ -289,7 +298,9 @@ function addIndexes(index,div){
 			
 
 		},
-		error:function(a,b,c){div.find('span:last').text('KO').css('color','red');}
+		error:function(a,b,c){
+			console.log(a,b,c);
+			div.find('span:last').text('KO').css('color','red');}
 	}));	
 }
 
@@ -382,6 +393,7 @@ function addLigne(){
 		$.ajax($.extend({},securityOptions,{
 			url:URL_ROOT + '/' + this.id + '/test/',
 			type:'POST',
+			contentType:'application/json',
 			dataType:'json',
 			data:'{"data":"' + data + '"}',
 			success:function(data){
@@ -419,6 +431,7 @@ function searchInIndexes(){
 		url:URL_ROOT + '/_search',
 		data:params,
 		type:'POST',
+		contentType:'application/json',
 		dataType:'json',
 		success:function(data){
 			var json = data;
@@ -455,6 +468,7 @@ function listDatas(){
 	$.ajax($.extend({},securityOptions,{
 		url:URL_ROOT + '/' + index + '/_search',
 		type:'POST',
+		contentType:'application/json',
 		dataType:'json',
 		success:function(data){
 			var json = data;
