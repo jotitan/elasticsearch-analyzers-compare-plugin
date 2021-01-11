@@ -16,7 +16,7 @@ Pour accéder au cluster ES depuis le plugin, vous devez activer certaines fonct
 bc. http.cors.enabled: true
 http.cors.allow-origin: /.*/
 http.cors.allow-credentials: true
-http.cors.allow-headers: Authorization
+http.cors.allow-headers: Authorization,Content-Type
 
 Le champ PREFIX permet de définir un prefix commun à tous les index qui seront créés. 
 *Attention* : si le prefixe n’est pas précisé, il est possible de supprimer tous les index et les données présents sur le serveur.
